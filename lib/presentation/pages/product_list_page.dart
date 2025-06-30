@@ -1,13 +1,18 @@
-// ignore_for_file: use_build_context_synchronously, unused_import, no_leading_underscores_for_local_identifiers
+// ... imports existentes
 
+// ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously
+
+// Importe a página de orçamento
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../data/models/produto_model.dart';
-import '../../data/repositories/produto_repository.dart';
-import '../../data/models/unidade_medida_model.dart'; // Para exibir a descrição da unidade
-import '../../data/repositories/unidade_medida_repository.dart'; // Para carregar unidades
-import '../../data/models/categoria_model.dart'; // Para exibir a descrição da categoria
-import '../../data/repositories/categoria_repository.dart'; // Para carregar categorias
+import 'package:lista_compras/data/models/categoria_model.dart';
+import 'package:lista_compras/data/models/orcamento_model.dart';
+import 'package:lista_compras/data/models/produto_model.dart';
+import 'package:lista_compras/data/models/unidade_medida_model.dart';
+import 'package:lista_compras/data/repositories/categoria_repository.dart';
+import 'package:lista_compras/data/repositories/orcamento_repository.dart';
+import 'package:lista_compras/data/repositories/produto_repository.dart';
+import 'package:lista_compras/data/repositories/unidade_medida_repository.dart';
+import '/presentation/pages/orcamento_page.dart';
 
 class ProductListPage extends StatefulWidget {
   const ProductListPage({super.key});
@@ -21,27 +26,55 @@ class _ProductListPageState extends State<ProductListPage> {
   final UnidadeMedidaRepository _unidadeMedidaRepository =
       UnidadeMedidaRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
+  // Novo: Repositório de orçamento
+  final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
 
-  // Mapas para armazenar as descrições das unidades e categorias por ID para fácil acesso
   Map<String, String> _unidadesDescricao = {};
   Map<String, String> _categoriasDescricao = {};
+
+  // Controlador para as páginas no BottomNavigationBar
+  int _selectedIndex = 0;
+  late PageController _pageController; // Será inicializado no initState
+
+  // Objeto de orçamento para exibir na dashboard
+  OrcamentoModel? _currentOrcamento;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
     _loadAuxiliaryData();
+    // Escuta o orçamento para exibir na dashboard
+    _orcamentoRepository.getOrcamento().listen((orcamento) {
+      setState(() {
+        _currentOrcamento = orcamento;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    _pageController.jumpToPage(
+      index,
+    ); // ou animateToPage para uma transição suave
   }
 
   // Carrega as descrições das unidades de medida e categorias
   Future<void> _loadAuxiliaryData() async {
-    // Carrega Unidades de Medida
     _unidadeMedidaRepository.getUnidadesMedida().listen((unidades) {
       setState(() {
         _unidadesDescricao = {for (var u in unidades) u.id: u.descricao};
       });
     });
 
-    // Carrega Categorias
     _categoriaRepository.getCategorias().listen((categorias) {
       setState(() {
         _categoriasDescricao = {for (var c in categorias) c.id: c.descricao};
@@ -49,9 +82,10 @@ class _ProductListPageState extends State<ProductListPage> {
     });
   }
 
-  // Método para exibir o formulário de adicionar/editar produto
+  // Método para exibir o formulário de adicionar/editar produto (mantido igual)
   void _showProductForm({ProdutoModel? produto}) {
-    // Controladores para os campos do formulário
+    // ... CÓDIGO DO _showProductForm AQUI (MANTENHA EXATAMENTE O MESMO QUE JÁ ESTÁ) ...
+    // Certifique-se de que este método esteja completo no seu arquivo.
     final TextEditingController _nomeController = TextEditingController(
       text: produto?.nome ?? '',
     );
@@ -207,137 +241,172 @@ class _ProductListPageState extends State<ProductListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Minha Lista de Produtos')),
-      body: StreamBuilder<List<ProdutoModel>>(
-        stream: _produtoRepository.getActiveProdutos(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Erro ao carregar produtos: ${snapshot.error}'),
-            );
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text('Nenhum produto cadastrado. Adicione um agora!'),
-            );
-          }
-
-          final produtos = snapshot.data!;
-          return ListView.builder(
-            itemCount: produtos.length,
-            itemBuilder: (context, index) {
-              final produto = produtos[index];
-              final unidadeDescricao =
-                  _unidadesDescricao[produto.unidadeMedidaId] ?? 'N/A';
-              final categoriaDescricao =
-                  _categoriasDescricao[produto.categoriaId] ?? 'N/A';
-              final quantidadeParaComprar =
-                  (produto.quantidadeIdealMes - produto.quantidadeEmEstoque)
-                      .toStringAsFixed(1);
-
-              // Define a cor de fundo com base na quantidade a comprar
-              Color? itemBackgroundColor;
-              if (double.parse(quantidadeParaComprar) > 0) {
-                itemBackgroundColor =
-                    Colors.red[50]; // Laranja claro para itens a comprar
-              } else {
-                itemBackgroundColor = Colors
-                    .green[50]; // Verde claro para itens sem necessidade de compra
+      appBar: AppBar(
+        title: _selectedIndex == 0
+            ? const Text('Minha Lista de Produtos')
+            : const Text('Definir Orçamento Mensal'), // Título dinâmico
+      ),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        children: [
+          // Conteúdo da Tela 1: Lista de Produtos
+          StreamBuilder<List<ProdutoModel>>(
+            stream: _produtoRepository.getActiveProdutos(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Erro ao carregar produtos: ${snapshot.error}'),
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(
+                  child: Text('Nenhum produto cadastrado. Adicione um agora!'),
+                );
               }
 
-              return Card(
-                color: itemBackgroundColor,
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: ListTile(
-                  title: Text(
-                    produto.nome,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Ideal p/ Mês: ${produto.quantidadeIdealMes.toStringAsFixed(1)} $unidadeDescricao',
+              final produtos = snapshot.data!;
+              return ListView.builder(
+                itemCount: produtos.length,
+                itemBuilder: (context, index) {
+                  final produto = produtos[index];
+                  final unidadeDescricao =
+                      _unidadesDescricao[produto.unidadeMedidaId] ?? 'N/A';
+                  final categoriaDescricao =
+                      _categoriasDescricao[produto.categoriaId] ?? 'N/A';
+                  final double quantidadeParaComprar =
+                      produto.quantidadeIdealMes - produto.quantidadeEmEstoque;
+
+                  Color? itemBackgroundColor;
+                  if (quantidadeParaComprar > 0) {
+                    itemBackgroundColor = Colors.red[50];
+                  } else {
+                    itemBackgroundColor = Colors.green[50];
+                  }
+
+                  return Card(
+                    color: itemBackgroundColor,
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    child: ListTile(
+                      title: Text(
+                        produto.nome,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text(
-                        'Em Estoque: ${produto.quantidadeEmEstoque.toStringAsFixed(1)} $unidadeDescricao',
-                      ),
-                      Text(
-                        'Precisa Comprar: $quantidadeParaComprar $unidadeDescricao',
-                        style: TextStyle(
-                          color: double.parse(quantidadeParaComprar) > 0
-                              ? Colors.red[700]
-                              : Colors.green[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text('Categoria: $categoriaDescricao'),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _showProductForm(produto: produto),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_forever,
-                          color: Colors.red,
-                        ),
-                        onPressed: () async {
-                          // Confirmação de exclusão
-                          final bool? confirm = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Confirmar Exclusão'),
-                              content: Text(
-                                'Tem certeza que deseja remover ${produto.nome}?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(false),
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(true),
-                                  child: const Text('Remover'),
-                                ),
-                              ],
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ideal p/ Mês: ${produto.quantidadeIdealMes.toStringAsFixed(1)} $unidadeDescricao',
+                          ),
+                          Text(
+                            'Em Estoque: ${produto.quantidadeEmEstoque.toStringAsFixed(1)} $unidadeDescricao',
+                          ),
+                          Text(
+                            'Precisa Comprar: ${quantidadeParaComprar.toStringAsFixed(1)} $unidadeDescricao',
+                            style: TextStyle(
+                              color: quantidadeParaComprar > 0
+                                  ? Colors.red[700]
+                                  : Colors.green[700],
+                              fontWeight: FontWeight.bold,
                             ),
-                          );
-                          if (confirm == true) {
-                            await _produtoRepository.removeProdutoLogically(
-                              produto.id,
-                            );
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('${produto.nome} removido!'),
+                          ),
+                          Text('Categoria: $categoriaDescricao'),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showProductForm(produto: produto),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_forever,
+                              color: Colors.red,
+                            ),
+                            onPressed: () async {
+                              final bool? confirm = await showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Confirmar Exclusão'),
+                                  content: Text(
+                                    'Tem certeza que deseja remover ${produto.nome}?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(false),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(true),
+                                      child: const Text('Remover'),
+                                    ),
+                                  ],
                                 ),
                               );
-                            }
-                          }
-                        },
+                              if (confirm == true) {
+                                await _produtoRepository.removeProdutoLogically(
+                                  produto.id,
+                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${produto.nome} removido!',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+          // Conteúdo da Tela 2: Orçamento
+          const OrcamentoPage(), // Sua nova página de orçamento
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            _showProductForm(), // Abre o formulário para adicionar novo
-        child: const Icon(Icons.add),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: () => _showProductForm(),
+              child: const Icon(Icons.add),
+            )
+          : null, // Desabilita o FAB na tela de orçamento
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Produtos'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.attach_money),
+            label: 'Orçamento',
+          ),
+          // Futuramente: Adicionar a tela de Compra Ativa aqui
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.shopping_cart),
+          //   label: 'Comprar',
+          // ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Theme.of(context).primaryColor,
+        onTap: _onItemTapped,
       ),
     );
   }
