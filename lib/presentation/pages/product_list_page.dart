@@ -1,6 +1,6 @@
 // ... imports existentes
 
-// ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously
+// ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, unused_import
 
 // Importe a página de orçamento
 import 'package:flutter/material.dart';
@@ -12,6 +12,7 @@ import 'package:lista_compras/data/repositories/categoria_repository.dart';
 import 'package:lista_compras/data/repositories/orcamento_repository.dart';
 import 'package:lista_compras/data/repositories/produto_repository.dart';
 import 'package:lista_compras/data/repositories/unidade_medida_repository.dart';
+import 'package:lista_compras/presentation/pages/active_shopping_page.dart'; // Importe a nova página
 import '/presentation/pages/orcamento_page.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -244,7 +245,9 @@ class _ProductListPageState extends State<ProductListPage> {
       appBar: AppBar(
         title: _selectedIndex == 0
             ? const Text('Minha Lista de Produtos')
-            : const Text('Definir Orçamento Mensal'), // Título dinâmico
+            : _selectedIndex == 1
+            ? const Text('Definir Orçamento Mensal')
+            : const Text('Compra Ativa'), // Título dinâmico para a nova tela
       ),
       body: PageView(
         controller: _pageController,
@@ -255,9 +258,11 @@ class _ProductListPageState extends State<ProductListPage> {
         },
         children: [
           // Conteúdo da Tela 1: Lista de Produtos
+          // ... (O código da StreamBuilder<List<ProdutoModel>> existente aqui) ...
           StreamBuilder<List<ProdutoModel>>(
             stream: _produtoRepository.getActiveProdutos(),
             builder: (context, snapshot) {
+              // ... (seu código atual da lista de produtos) ...
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -382,7 +387,9 @@ class _ProductListPageState extends State<ProductListPage> {
             },
           ),
           // Conteúdo da Tela 2: Orçamento
-          const OrcamentoPage(), // Sua nova página de orçamento
+          const OrcamentoPage(),
+          // Conteúdo da Tela 3: Compra Ativa
+          const ActiveShoppingPage(), // Adicione sua nova página aqui!
         ],
       ),
       floatingActionButton: _selectedIndex == 0
@@ -390,7 +397,15 @@ class _ProductListPageState extends State<ProductListPage> {
               onPressed: () => _showProductForm(),
               child: const Icon(Icons.add),
             )
-          : null, // Desabilita o FAB na tela de orçamento
+          : (_selectedIndex ==
+                    2 // Apenas mostra o FAB para a tela de compra ativa
+                ? FloatingActionButton(
+                    onPressed: () {
+                      // O FAB da ActiveShoppingPage já vai lidar com isso
+                    },
+                    child: const Icon(Icons.add_shopping_cart),
+                  )
+                : null),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Produtos'),
@@ -398,11 +413,11 @@ class _ProductListPageState extends State<ProductListPage> {
             icon: Icon(Icons.attach_money),
             label: 'Orçamento',
           ),
-          // Futuramente: Adicionar a tela de Compra Ativa aqui
-          // BottomNavigationBarItem(
-          //   icon: Icon(Icons.shopping_cart),
-          //   label: 'Comprar',
-          // ),
+          BottomNavigationBarItem(
+            // Novo item para a compra ativa
+            icon: Icon(Icons.shopping_cart),
+            label: 'Comprar',
+          ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Theme.of(context).primaryColor,
