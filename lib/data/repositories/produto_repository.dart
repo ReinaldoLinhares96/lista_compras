@@ -1,13 +1,12 @@
 // ignore_for_file: unused_field
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/produto_model.dart';
 import '../../core/constants/firestore_collections.dart';
 
 class ProdutoRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _produtosCollection =
-      FirebaseFirestore.instance.collection(FirestoreCollections.produtos);
+  final CollectionReference _produtosCollection = FirebaseFirestore.instance
+      .collection(FirestoreCollections.produtos);
 
   // Adicionar um novo produto
   Future<void> addProduto(ProdutoModel produto) async {
@@ -28,14 +27,30 @@ class ProdutoRepository {
     return _produtosCollection
         .where('isRemoved', isEqualTo: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ProdutoModel.fromFirestore(doc))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ProdutoModel.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   // Atualizar um produto existente
   Future<void> updateProduto(ProdutoModel produto) async {
-    await _produtosCollection.doc(produto.id).update(produto.toFirestore());
+    // Garante que o updatedAt seja sempre atualizado ao modificar um produto
+    await _produtosCollection
+        .doc(produto.id)
+        .update(produto.copyWith(updatedAt: DateTime.now()).toFirestore());
+  }
+
+  // NOVO MÉTODO: Atualiza apenas a quantidade em estoque de um produto
+  Future<void> updateQuantidadeEmEstoque(
+    String produtoId,
+    double novaQuantidade,
+  ) async {
+    await _produtosCollection.doc(produtoId).update({
+      'quantidadeEmEstoque': novaQuantidade,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // Remover um produto logicamente

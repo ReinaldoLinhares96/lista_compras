@@ -1,6 +1,6 @@
 // ... imports existentes
 
-// ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, unused_import
+// ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, unused_import, unused_element
 
 // Importe a página de orçamento
 import 'package:flutter/material.dart';
@@ -81,6 +81,123 @@ class _ProductListPageState extends State<ProductListPage> {
         _categoriasDescricao = {for (var c in categorias) c.id: c.descricao};
       });
     });
+  }
+
+  // Novo: Método para exibir o diálogo de atualização de estoque
+  void _showUpdateStockDialog(ProdutoModel produto) {
+    final TextEditingController _stockController = TextEditingController(
+      text: produto.quantidadeEmEstoque.toStringAsFixed(1).replaceAll('.', ','),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Atualizar Estoque de ${produto.nome}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ideal p/ Mês: ${produto.quantidadeIdealMes.toStringAsFixed(1)} ${_unidadesDescricao[produto.unidadeMedidaId] ?? 'N/A'}',
+              ),
+              TextField(
+                controller: _stockController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Quantidade em Estoque Atual',
+                  hintText: 'Ex: 2,5',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final String inputText = _stockController.text;
+                final double? novaQuantidade = double.tryParse(
+                  inputText.replaceAll(',', '.'),
+                );
+
+                if (novaQuantidade == null || novaQuantidade < 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Por favor, insira uma quantidade válida.'),
+                    ),
+                  );
+                  return;
+                }
+
+                // Lógica de notificação de excedente e atualização da quantidade ideal
+                if (novaQuantidade > produto.quantidadeIdealMes) {
+                  final bool? updateIdeal = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Estoque Excedente!'),
+                      content: Text(
+                        '${produto.nome}: Novo estoque (${novaQuantidade.toStringAsFixed(1)}) excede o ideal mensal (${produto.quantidadeIdealMes.toStringAsFixed(1)}). Deseja atualizar a Quantidade Ideal para o novo estoque?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Não'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('Sim'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (updateIdeal == true) {
+                    await _produtoRepository.updateProduto(
+                      produto.copyWith(
+                        quantidadeEmEstoque: novaQuantidade,
+                        quantidadeIdealMes:
+                            novaQuantidade, // Atualiza o ideal também
+                        updatedAt: DateTime.now(),
+                      ),
+                    );
+                  } else {
+                    // Atualiza apenas o estoque
+                    await _produtoRepository.updateProduto(
+                      produto.copyWith(
+                        quantidadeEmEstoque: novaQuantidade,
+                        updatedAt: DateTime.now(),
+                      ),
+                    );
+                  }
+                } else {
+                  // Apenas atualiza o estoque se não exceder
+                  await _produtoRepository.updateProduto(
+                    produto.copyWith(
+                      quantidadeEmEstoque: novaQuantidade,
+                      updatedAt: DateTime.now(),
+                    ),
+                  );
+                }
+
+                if (mounted) {
+                  Navigator.of(context).pop(); // Fecha o diálogo
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Estoque de ${produto.nome} atualizado!'),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Método para exibir o formulário de adicionar/editar produto (mantido igual)
@@ -258,30 +375,16 @@ class _ProductListPageState extends State<ProductListPage> {
         },
         children: [
           // Conteúdo da Tela 1: Lista de Produtos
-          // ... (O código da StreamBuilder<List<ProdutoModel>> existente aqui) ...
           StreamBuilder<List<ProdutoModel>>(
             stream: _produtoRepository.getActiveProdutos(),
             builder: (context, snapshot) {
-              // ... (seu código atual da lista de produtos) ...
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text('Erro ao carregar produtos: ${snapshot.error}'),
-                );
-              }
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(
-                  child: Text('Nenhum produto cadastrado. Adicione um agora!'),
-                );
-              }
-
+              // ... (código existente para carregar produtos) ...
               final produtos = snapshot.data!;
               return ListView.builder(
                 itemCount: produtos.length,
                 itemBuilder: (context, index) {
                   final produto = produtos[index];
+                  // ... (obtenção de descrições e cálculo de quantidadeParaComprar) ...
                   final unidadeDescricao =
                       _unidadesDescricao[produto.unidadeMedidaId] ?? 'N/A';
                   final categoriaDescricao =
@@ -331,9 +434,19 @@ class _ProductListPageState extends State<ProductListPage> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // NOVO BOTÃO: Atualizar Estoque
+                          IconButton(
+                            icon: const Icon(
+                              Icons.inventory,
+                              color: Colors.blue,
+                            ),
+                            onPressed: () => _showUpdateStockDialog(produto),
+                            tooltip: 'Atualizar Estoque',
+                          ),
                           IconButton(
                             icon: const Icon(Icons.edit),
                             onPressed: () => _showProductForm(produto: produto),
+                            tooltip: 'Editar Produto',
                           ),
                           IconButton(
                             icon: const Icon(
@@ -386,10 +499,9 @@ class _ProductListPageState extends State<ProductListPage> {
               );
             },
           ),
-          // Conteúdo da Tela 2: Orçamento
+          // ... (OrcamentoPage e ActiveShoppingPage como estão) ...
           const OrcamentoPage(),
-          // Conteúdo da Tela 3: Compra Ativa
-          const ActiveShoppingPage(), // Adicione sua nova página aqui!
+          const ActiveShoppingPage(),
         ],
       ),
       floatingActionButton: _selectedIndex == 0
@@ -397,15 +509,7 @@ class _ProductListPageState extends State<ProductListPage> {
               onPressed: () => _showProductForm(),
               child: const Icon(Icons.add),
             )
-          : (_selectedIndex ==
-                    2 // Apenas mostra o FAB para a tela de compra ativa
-                ? FloatingActionButton(
-                    onPressed: () {
-                      // O FAB da ActiveShoppingPage já vai lidar com isso
-                    },
-                    child: const Icon(Icons.add_shopping_cart),
-                  )
-                : null),
+          : null, // O FAB agora é apenas para a tela de produtos
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Produtos'),
@@ -414,7 +518,6 @@ class _ProductListPageState extends State<ProductListPage> {
             label: 'Orçamento',
           ),
           BottomNavigationBarItem(
-            // Novo item para a compra ativa
             icon: Icon(Icons.shopping_cart),
             label: 'Comprar',
           ),
