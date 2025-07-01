@@ -13,7 +13,7 @@ class ProdutoRepository {
     await _produtosCollection.doc(produto.id).set(produto.toFirestore());
   }
 
-  // Obter um produto por ID
+  // Obter um produto por ID (certifique-se que este método está presente)
   Future<ProdutoModel?> getProdutoById(String id) async {
     final doc = await _produtosCollection.doc(id).get();
     if (doc.exists) {
@@ -23,9 +23,14 @@ class ProdutoRepository {
   }
 
   // Obter todos os produtos ativos (não removidos logicamente)
+  // AGORA ORDENADOS POR NOME E FILTRADOS POR ATIVOS
   Stream<List<ProdutoModel>> getActiveProdutos() {
     return _produtosCollection
         .where('isRemoved', isEqualTo: false)
+        .orderBy(
+          'nome',
+          descending: false,
+        ) // Adiciona a ordenação por nome (A-Z)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
@@ -36,13 +41,12 @@ class ProdutoRepository {
 
   // Atualizar um produto existente
   Future<void> updateProduto(ProdutoModel produto) async {
-    // Garante que o updatedAt seja sempre atualizado ao modificar um produto
     await _produtosCollection
         .doc(produto.id)
         .update(produto.copyWith(updatedAt: DateTime.now()).toFirestore());
   }
 
-  // NOVO MÉTODO: Atualiza apenas a quantidade em estoque de um produto
+  // Atualiza apenas a quantidade em estoque de um produto
   Future<void> updateQuantidadeEmEstoque(
     String produtoId,
     double novaQuantidade,
@@ -58,7 +62,7 @@ class ProdutoRepository {
     await _produtosCollection.doc(id).update({
       'isActive': false,
       'isRemoved': true,
-      'updatedAt': FieldValue.serverTimestamp(), // Atualiza o timestamp
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 

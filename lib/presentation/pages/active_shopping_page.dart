@@ -1,7 +1,11 @@
-// ignore_for_file: unused_import, unnecessary_brace_in_string_interps, use_build_context_synchronously, deprecated_member_use
+// active_shopping_page.dart
+// Ignore as linhas que você já tem no arquivo original, o importante são as seções alteradas
+
+// ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lista_compras/data/models/categoria_model.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/models/item_compra_model.dart';
 import '../../data/models/produto_model.dart';
@@ -10,7 +14,12 @@ import '../../data/repositories/compra_repository.dart';
 import '../../data/repositories/item_compra_repository.dart';
 import '../../data/repositories/produto_repository.dart';
 import '../../data/repositories/orcamento_repository.dart';
-import '../../core/enums/compra_status_type.dart'; // Para acessar os tipos de status
+import '../../data/repositories/unidade_medida_repository.dart'; // Para descrições
+import '../../data/repositories/categoria_repository.dart'; // Para descrições
+import '../../core/enums/compra_status_type.dart';
+// Importe os novos widgets dos modais
+import 'package:lista_compras/presentation/widgets/add_edit_product_modal_form.dart';
+import 'package:lista_compras/presentation/widgets/add_avulso_modal_form.dart'; // Importe este
 
 class ActiveShoppingPage extends StatefulWidget {
   const ActiveShoppingPage({super.key});
@@ -24,46 +33,73 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   final ItemCompraRepository _itemCompraRepository = ItemCompraRepository();
   final ProdutoRepository _produtoRepository = ProdutoRepository();
   final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
+  final UnidadeMedidaRepository _unidadeMedidaRepository =
+      UnidadeMedidaRepository();
+  final CategoriaRepository _categoriaRepository = CategoriaRepository();
 
   CompraModel? _compraAtiva;
   OrcamentoModel? _orcamentoAtual;
-  List<ProdutoModel> _produtosNecessarios =
-      []; // Itens da lista frequente que precisam ser comprados
-  List<ProdutoModel> _allProdutos =
-      []; // Todos os produtos da lista frequente para busca
+  List<ProdutoModel> _allProdutosFrequentes =
+      []; // Todos os produtos da lista frequente
+  List<ItemCompraModel> _itensNoCarrinho =
+      []; // Itens que estão no carrinho virtual da compra ativa
 
-  final TextEditingController _itemNomeController = TextEditingController();
-  final TextEditingController _itemQuantidadeController =
-      TextEditingController();
-  final TextEditingController _itemPrecoController = TextEditingController();
+  Map<String, String> _unidadesDescricao = {};
+  Map<String, String> _categoriasDescricao = {};
+  Map<String, CategoriaModel> _categoriasMap = {};
 
-  ProdutoModel?
-  _selectedProdutoFromList; // Produto selecionado da lista frequente para adicionar ao carrinho
+  // Para gerenciar o estado dos ExpansionPanelList
+  bool _panelPrecisaComprarExpanded = true;
+  bool _panelNoCarrinhoExpanded = true;
 
   @override
   void initState() {
     super.initState();
+    _listenToAuxiliaryData();
     _listenToCompraAtiva();
     _listenToOrcamento();
-    _loadAllProdutos();
+    _listenToAllProdutosFrequentes(); // Escuta todos os produtos frequentes
   }
 
   @override
   void dispose() {
-    _itemNomeController.dispose();
-    _itemQuantidadeController.dispose();
-    _itemPrecoController.dispose();
     super.dispose();
+  }
+
+  void _listenToAuxiliaryData() {
+    _unidadeMedidaRepository.getUnidadesMedida().listen((unidades) {
+      setState(() {
+        _unidadesDescricao = {for (var u in unidades) u.id: u.descricao};
+      });
+    });
+    _categoriaRepository.getCategorias().listen((categorias) {
+      setState(() {
+        _categoriasDescricao = {for (var c in categorias) c.id: c.descricao};
+      });
+    });
+    _categoriaRepository.getCategorias().listen((categorias) {
+      setState(() {
+        _categoriasMap = {for (var c in categorias) c.id: c};
+      });
+    });
   }
 
   void _listenToCompraAtiva() {
     _compraRepository.getCompraAtiva().listen((compra) {
       setState(() {
         _compraAtiva = compra;
-        if (compra != null) {
-          _calculateProdutosNecessarios(); // Recalcula os necessários sempre que a compra ou produtos mudam
-        }
       });
+      if (compra != null) {
+        _itemCompraRepository.getItensCompra(compra.id).listen((itens) {
+          setState(() {
+            _itensNoCarrinho = itens;
+          });
+        });
+      } else {
+        setState(() {
+          _itensNoCarrinho = []; // Limpa se não houver compra ativa
+        });
+      }
     });
   }
 
@@ -75,27 +111,11 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     });
   }
 
-  void _loadAllProdutos() {
+  void _listenToAllProdutosFrequentes() {
     _produtoRepository.getActiveProdutos().listen((produtos) {
       setState(() {
-        _allProdutos = produtos;
-        if (_compraAtiva != null) {
-          _calculateProdutosNecessarios();
-        }
+        _allProdutosFrequentes = produtos;
       });
-    });
-  }
-
-  // Calcula os produtos que precisam ser comprados
-  void _calculateProdutosNecessarios() {
-    setState(() {
-      _produtosNecessarios = _allProdutos
-          .where(
-            (p) =>
-                (p.quantidadeIdealMes - p.quantidadeEmEstoque) >
-                0, // Precisa comprar > 0
-          )
-          .toList();
     });
   }
 
@@ -117,77 +137,29 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
-  // Adicionar item ao carrinho
-  Future<void> _addItemAoCarrinho({ProdutoModel? produtoFrequente}) async {
-    String nome = produtoFrequente?.nome ?? _itemNomeController.text;
-    double? quantidade = double.tryParse(
-      _itemQuantidadeController.text.replaceAll(',', '.'),
-    );
-    double? precoUnitario = double.tryParse(
-      _itemPrecoController.text.replaceAll(',', '.'),
-    );
-
-    if (_compraAtiva == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, inicie uma compra primeiro.')),
-      );
-      return;
-    }
-
-    if (nome.isEmpty ||
-        quantidade == null ||
-        quantidade <= 0 ||
-        precoUnitario == null ||
-        precoUnitario <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preencha todos os campos do item corretamente.'),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final newItem = ItemCompraModel(
-        compraId: _compraAtiva!.id,
-        produtoId: produtoFrequente?.id,
-        nomeProduto: nome,
-        quantidadeComprada: quantidade,
-        precoUnitario: precoUnitario,
-        ehAvulso: produtoFrequente == null,
-      );
-      await _itemCompraRepository.addItemCompra(newItem);
-
-      // Atualiza o valor total da compra ativa no Firebase
-      final currentTotal = _compraAtiva!.valorTotalCalculado + newItem.subtotal;
-      await _compraRepository.updateCompra(
-        _compraAtiva!.copyWith(valorTotalCalculado: currentTotal),
-      );
-
-      // Limpa os campos do formulário após adicionar
-      _itemNomeController.clear();
-      _itemQuantidadeController.clear();
-      _itemPrecoController.clear();
-      setState(() {
-        _selectedProdutoFromList = null; // Limpa a seleção da lista
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${nome} adicionado ao carrinho!')),
+  // Adicionar produto da lista frequente ao carrinho (via modal)
+  Future<void> _addProdutoFrequenteToCarrinho(ProdutoModel produto) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        // Agora, em vez de um StatefulBuilder aqui, você usa o seu novo widget
+        return AddEditProductModalForm(
+          produto: produto,
+          unidadesDescricao: _unidadesDescricao,
+          categoriasDescricao: _categoriasDescricao,
+          categoriasMap:
+              _categoriasMap, // _categoriasMap deve ser acessível aqui
         );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro ao adicionar item: $e')));
-      }
-    }
+      },
+    ); // whenComplete não é necessário aqui, pois o widget do modal gerencia seus próprios controladores
   }
 
   // Remover item do carrinho
-  Future<void> _removeItemDoCarrinho(ItemCompraModel item) async {
+  Future<void> _removeItemFromCarrinho(ItemCompraModel item) async {
     try {
+      if (_compraAtiva == null) return;
+
       await _itemCompraRepository.removeItemCompra(item.id);
 
       // Recalcula o total da compra e atualiza no Firebase
@@ -210,9 +182,37 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
-  // Finalizar compra
+  // Adicionar item avulso ao carrinho
+  Future<void> _addAvulsoToCarrinho() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        // Use o novo widget para o formulário avulso
+        return AddAvulsoModalForm(
+          compraAtiva: _compraAtiva,
+          showSnackbar: (message) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(message)));
+            }
+          },
+        );
+      },
+    ); // whenComplete não é necessário aqui
+  }
+
+  // Finalizar compra (mantido o fluxo existente, mas aprimorado)
   Future<void> _finalizarCompra() async {
-    if (_compraAtiva == null) return;
+    if (_compraAtiva == null || _itensNoCarrinho.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhum item no carrinho para finalizar a compra.'),
+        ),
+      );
+      return;
+    }
 
     final bool? confirm = await showDialog(
       context: context,
@@ -242,14 +242,10 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         );
 
         // Atualizar QuantidadeEmEstoque dos produtos da lista frequente
-        final List<ItemCompraModel> itensComprados =
-            (await _itemCompraRepository
-                .getItensCompra(_compraAtiva!.id)
-                .first);
-        for (var item in itensComprados) {
+        for (var item in _itensNoCarrinho) {
           if (item.produtoId != null) {
             // Se for um produto da lista frequente
-            final produtoOriginal = _allProdutos.firstWhere(
+            final produtoOriginal = _allProdutosFrequentes.firstWhere(
               (p) => p.id == item.produtoId,
             );
             final updatedEstoque =
@@ -262,7 +258,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                 builder: (context) => AlertDialog(
                   title: const Text('Estoque Excedente!'),
                   content: Text(
-                    '${produtoOriginal.nome}: Estoque atual (${updatedEstoque.toStringAsFixed(1)}) excede o ideal mensal (${produtoOriginal.quantidadeIdealMes.toStringAsFixed(1)}). Deseja atualizar a Quantidade Ideal para o novo estoque?',
+                    '${produtoOriginal.nome}: Estoque atual (${updatedEstoque.toStringAsFixed(1)}) excede o ideal mensal (${produtoOriginal.quantidadeIdealMes.toStringAsFixed(1)}).\nVocê poderá ajustar a quantidade ideal agora ou posteriormente na lista de produtos.',
                   ),
                   actions: [
                     TextButton(
@@ -276,7 +272,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         );
                         Navigator.of(context).pop();
                       },
-                      child: const Text('Não'),
+                      child: const Text('Não Atualizar Ideal'),
                     ),
                     TextButton(
                       onPressed: () {
@@ -290,7 +286,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         );
                         Navigator.of(context).pop();
                       },
-                      child: const Text('Sim'),
+                      child: const Text('Atualizar Ideal'),
                     ),
                   ],
                 ),
@@ -322,151 +318,90 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
-  // Diálogo para adicionar item
-  void _showAddItemDialog() {
-    _itemNomeController.clear();
-    _itemQuantidadeController.clear();
-    _itemPrecoController.clear();
-    _selectedProdutoFromList = null; // Reseta a seleção
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter modalSetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                top: 20,
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Adicionar Item ao Carrinho',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 15),
-                  // Dropdown para selecionar produtos da lista de "precisa comprar"
-                  DropdownButtonFormField<ProdutoModel>(
-                    value: _selectedProdutoFromList,
-                    hint: const Text('Selecionar item da sua lista (opcional)'),
-                    onChanged: (ProdutoModel? newValue) {
-                      modalSetState(() {
-                        _selectedProdutoFromList = newValue;
-                        if (newValue != null) {
-                          _itemNomeController.text = newValue.nome;
-                          // Preenche a quantidade sugerida se houver
-                          _itemQuantidadeController.text =
-                              (newValue.quantidadeIdealMes -
-                                      newValue.quantidadeEmEstoque)
-                                  .toStringAsFixed(1)
-                                  .replaceAll('.', ',');
-                        } else {
-                          _itemNomeController.clear();
-                          _itemQuantidadeController.clear();
-                        }
-                      });
-                    },
-                    items: _produtosNecessarios.map((produto) {
-                      final necessidade =
-                          (produto.quantidadeIdealMes -
-                                  produto.quantidadeEmEstoque)
-                              .toStringAsFixed(1);
-                      return DropdownMenuItem<ProdutoModel>(
-                        value: produto,
-                        child: Text('${produto.nome} (Precisa: $necessidade)'),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _itemNomeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome do Item (ou preenchido pela lista)',
-                    ),
-                    enabled:
-                        _selectedProdutoFromList ==
-                        null, // Desabilita se um item da lista for selecionado
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _itemQuantidadeController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'Quantidade'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _itemPrecoController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Preço Unitário',
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _addItemAoCarrinho(
-                          produtoFrequente: _selectedProdutoFromList,
-                        );
-                        Navigator.pop(context); // Fecha o modal após adicionar
-                      },
-                      child: const Text('Adicionar ao Carrinho'),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Calcula o saldo restante e define a cor de alerta
     double saldoRestante =
         (_orcamentoAtual?.valorMaximo ?? 0.0) -
         (_compraAtiva?.valorTotalCalculado ?? 0.0);
     Color saldoColor = Colors.green;
     String saldoAlert = '';
+    IconData? saldoIcon;
+
     if (saldoRestante < 0) {
       saldoColor = Colors.red;
       saldoAlert = 'Orçamento Excedido!';
-    } else if (saldoRestante < (_orcamentoAtual?.valorMaximo ?? 0.0) * 0.2) {
-      // 20% do orçamento
+      saldoIcon = Icons.error;
+    } else if (saldoRestante < (_orcamentoAtual?.valorMaximo ?? 0.0) * 0.2 &&
+        (_orcamentoAtual?.valorMaximo ?? 0) > 0) {
       saldoColor = Colors.orange;
       saldoAlert = 'Atenção ao Orçamento!';
+      saldoIcon = Icons.warning;
     }
+
+    // Produtos que precisam ser comprados (calculados com base no estoque e nos itens no carrinho)
+    final List<ProdutoModel> produtosPrecisaComprar = _allProdutosFrequentes
+        .where((p) {
+          // Quantidade no estoque que o usuário TEM
+          double currentStock = p.quantidadeEmEstoque;
+          // Quantidade deste produto já "no carrinho" na sessão atual
+          double quantityInCart = _itensNoCarrinho
+              .where((item) => item.produtoId == p.id)
+              .fold(0.0, (sum, item) => sum + item.quantidadeComprada);
+
+          // A necessidade real agora considera o que já está no carrinho
+          return (p.quantidadeIdealMes - currentStock - quantityInCart) > 0;
+        })
+        .toList();
+
+    // Organiza os itens no carrinho por categoria para exibição
+    final Map<String, List<ItemCompraModel>> itensNoCarrinhoPorCategoria = {};
+    for (var item in _itensNoCarrinho) {
+      String categoriaDesc = 'Itens Avulsos'; // Padrão para avulsos
+      if (item.produtoId != null) {
+        final produtoFreq = _allProdutosFrequentes.firstWhereOrNull(
+          (p) => p.id == item.produtoId,
+        );
+        if (produtoFreq != null) {
+          categoriaDesc =
+              _categoriasDescricao[produtoFreq.categoriaId] ??
+              'Outros da Lista';
+        }
+      }
+      itensNoCarrinhoPorCategoria
+          .putIfAbsent(categoriaDesc, () => [])
+          .add(item);
+    }
+    final sortedItensNoCarrinhoCategories =
+        itensNoCarrinhoPorCategoria.keys.toList()..sort();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Compra Ativa'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed:
-                _calculateProdutosNecessarios, // Recalcula os itens necessários
-            tooltip: 'Atualizar itens necessários',
+            icon: const Icon(
+              Icons.add_box_outlined,
+            ), // Ícone para adicionar avulso
+            onPressed: _addAvulsoToCarrinho,
+            tooltip: 'Adicionar Item Avulso',
           ),
           if (_compraAtiva != null &&
               _compraAtiva!.compraStatusId ==
-                  CompraStatusType.ativa.value.toString())
+                  CompraStatusType.ativa.value.toString() &&
+              _itensNoCarrinho.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.check_circle_outline),
               onPressed: _finalizarCompra,
               tooltip: 'Finalizar Compra',
+            )
+          else if (_compraAtiva != null &&
+              _compraAtiva!.compraStatusId ==
+                  CompraStatusType.ativa.value.toString())
+            IconButton(
+              // Ícone desabilitado quando carrinho está vazio
+              icon: Icon(Icons.check_circle_outline, color: Colors.grey[400]),
+              onPressed: null, // Desabilitado
+              tooltip: 'Carrinho vazio para finalizar',
             ),
         ],
       ),
@@ -489,12 +424,21 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  'Saldo Restante: R\$ ${saldoRestante.toStringAsFixed(2).replaceAll('.', ',')}',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: saldoColor,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Saldo Restante: R\$ ${saldoRestante.toStringAsFixed(2).replaceAll('.', ',')}',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: saldoColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    if (saldoIcon != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(saldoIcon, color: saldoColor),
+                    ],
+                  ],
                 ),
                 if (saldoAlert.isNotEmpty)
                   Text(
@@ -502,17 +446,18 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                     style: TextStyle(
                       color: saldoColor,
                       fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   ),
               ],
             ),
           ),
-          Expanded(
-            child:
-                _compraAtiva == null ||
-                    _compraAtiva!.compraStatusId !=
-                        CompraStatusType.ativa.value.toString()
-                ? Center(
+          // Condição para exibir "Nenhuma compra ativa" ou os painéis
+          _compraAtiva == null ||
+                  _compraAtiva!.compraStatusId !=
+                      CompraStatusType.ativa.value.toString()
+              ? Expanded(
+                  child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -525,76 +470,215 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         ),
                       ],
                     ),
-                  )
-                : StreamBuilder<List<ItemCompraModel>>(
-                    stream: _itemCompraRepository.getItensCompra(
-                      _compraAtiva!.id,
-                    ),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Erro ao carregar itens: ${snapshot.error}',
-                          ),
-                        );
-                      }
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Center(
-                          child: Text('Nenhum item adicionado ao carrinho.'),
-                        );
-                      }
-
-                      final itens = snapshot.data!;
-                      return ListView.builder(
-                        itemCount: itens.length,
-                        itemBuilder: (context, index) {
-                          final item = itens[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            child: ListTile(
-                              title: Text(
-                                item.nomeProduto,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: Text(
-                                '${item.quantidadeComprada.toStringAsFixed(1)} x R\$ ${item.precoUnitario.toStringAsFixed(2).replaceAll('.', ',')}',
-                              ),
-                              trailing: Text(
-                                'R\$ ${item.subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
-                              ),
-                              leading: IconButton(
-                                icon: const Icon(
-                                  Icons.remove_circle,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () => _removeItemDoCarrinho(item),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
                   ),
-          ),
+                )
+              : Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(8.0),
+                    children: [
+                      // Painel "Precisa Comprar"
+                      ExpansionPanelList(
+                        expansionCallback: (panelIndex, isExpanded) {
+                          setState(() {
+                            _panelPrecisaComprarExpanded =
+                                !_panelPrecisaComprarExpanded;
+                          });
+                        },
+                        children: [
+                          ExpansionPanel(
+                            headerBuilder: (context, isExpanded) {
+                              return ListTile(
+                                title: Text(
+                                  'Precisa Comprar (${produtosPrecisaComprar.length} itens)',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                              );
+                            },
+                            body: produtosPrecisaComprar.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Text(
+                                      'Você não precisa comprar mais nenhum item da lista! 🎉',
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: produtosPrecisaComprar.length,
+                                    itemBuilder: (context, index) {
+                                      final produto =
+                                          produtosPrecisaComprar[index];
+                                      final quantidade =
+                                          (produto.quantidadeIdealMes -
+                                                  produto.quantidadeEmEstoque)
+                                              .toStringAsFixed(1);
+                                      final unidade =
+                                          _unidadesDescricao[produto
+                                              .unidadeMedidaId] ??
+                                          'N/A';
+                                      return Card(
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        child: ListTile(
+                                          title: Text(produto.nome),
+                                          subtitle: Text(
+                                            'Comprar: $quantidade $unidade',
+                                          ),
+                                          trailing: IconButton(
+                                            icon: const Icon(
+                                              Icons.add_circle,
+                                              color: Colors.green,
+                                            ),
+                                            onPressed: () =>
+                                                _addProdutoFrequenteToCarrinho(
+                                                  produto,
+                                                ),
+                                            tooltip: 'Adicionar ao carrinho',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                            isExpanded: _panelPrecisaComprarExpanded,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Painel "No Carrinho"
+                      ExpansionPanelList(
+                        expansionCallback: (panelIndex, isExpanded) {
+                          setState(() {
+                            _panelNoCarrinhoExpanded =
+                                !_panelNoCarrinhoExpanded;
+                          });
+                        },
+                        children: [
+                          ExpansionPanel(
+                            headerBuilder: (context, isExpanded) {
+                              return ListTile(
+                                title: Text(
+                                  'No Carrinho (${_itensNoCarrinho.length} itens)',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                              );
+                            },
+                            body: _itensNoCarrinho.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Text(
+                                      'Nenhum item adicionado ao carrinho ainda.',
+                                    ),
+                                  )
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: sortedItensNoCarrinhoCategories.map((
+                                      categoria,
+                                    ) {
+                                      final itensDaCategoria =
+                                          itensNoCarrinhoPorCategoria[categoria]!;
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 16.0,
+                                              top: 8.0,
+                                              bottom: 4.0,
+                                            ),
+                                            child: Text(
+                                              categoria,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                          ),
+                                          ListView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            itemCount: itensDaCategoria.length,
+                                            itemBuilder: (context, index) {
+                                              final item =
+                                                  itensDaCategoria[index];
+                                              return Card(
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                child: ListTile(
+                                                  title: Text(item.nomeProduto),
+                                                  subtitle: Text(
+                                                    '${item.quantidadeComprada.toStringAsFixed(1)} x R\$ ${item.precoUnitario.toStringAsFixed(2).replaceAll('.', ',')}',
+                                                  ),
+                                                  trailing: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        'R\$ ${item.subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                                                      ),
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.remove_circle,
+                                                          color: Colors.red,
+                                                        ),
+                                                        onPressed: () =>
+                                                            _removeItemFromCarrinho(
+                                                              item,
+                                                            ),
+                                                        tooltip:
+                                                            'Remover do carrinho',
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    }).toList(),
+                                  ),
+                            isExpanded: _panelNoCarrinhoExpanded,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
         ],
       ),
       floatingActionButton:
           (_compraAtiva != null &&
               _compraAtiva!.compraStatusId ==
                   CompraStatusType.ativa.value.toString())
-          ? FloatingActionButton(
-              onPressed: _showAddItemDialog,
-              child: const Icon(Icons.add_shopping_cart),
+          ? FloatingActionButton.extended(
+              onPressed: _addAvulsoToCarrinho, // FAB para adicionar avulso
+              label: const Text('Item Avulso'),
+              icon: const Icon(Icons.add),
             )
-          : null, // O FAB só aparece se houver uma compra ativa
+          : null,
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.centerFloat, // Centraliza o FAB
     );
+  }
+}
+
+// Extensão para firstWhereOrNull em listas, para evitar erro se item não for encontrado
+extension IterableExtension<T> on Iterable<T> {
+  T? firstWhereOrNull(bool Function(T element) test) {
+    for (var element in this) {
+      if (test(element)) return element;
+    }
+    return null;
   }
 }

@@ -16,11 +16,12 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
   @override
   void initState() {
     super.initState();
-    // Escuta as mudanças no orçamento para manter o campo atualizado
     _orcamentoRepository.getOrcamento().listen((orcamento) {
       if (_orcamentoController.text !=
-          orcamento.valorMaximo.toStringAsFixed(2)) {
-        _orcamentoController.text = orcamento.valorMaximo.toStringAsFixed(2);
+          orcamento.valorMaximo.toStringAsFixed(2).replaceAll('.', ',')) {
+        _orcamentoController.text = orcamento.valorMaximo
+            .toStringAsFixed(2)
+            .replaceAll('.', ',');
       }
     });
   }
@@ -33,9 +34,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
 
   void _salvarOrcamento() async {
     final String inputText = _orcamentoController.text;
-    final double? novoValor = double.tryParse(
-      inputText.replaceAll(',', '.'),
-    ); // Lida com vírgula como separador decimal
+    final double? novoValor = double.tryParse(inputText.replaceAll(',', '.'));
 
     if (novoValor == null || novoValor < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -66,50 +65,87 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Definir Orçamento Mensal')),
+      // AppBar já é gerenciada pela ProductListPage agora
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch, // Estica os elementos horizontalmente
           children: [
-            StreamBuilder<OrcamentoModel>(
-              stream: _orcamentoRepository.getOrcamento(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Erro ao carregar orçamento: ${snapshot.error}',
-                    ),
-                  );
-                }
+            // Card para exibir o orçamento atual
+            Card(
+              elevation: 4, // Sombra para o card
+              margin: const EdgeInsets.only(
+                bottom: 20.0,
+              ), // Espaçamento abaixo do card
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ), // Bordas arredondadas
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: StreamBuilder<OrcamentoModel>(
+                  stream: _orcamentoRepository.getOrcamento(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Erro ao carregar orçamento: ${snapshot.error}',
+                        ),
+                      );
+                    }
 
-                final OrcamentoModel orcamento =
-                    snapshot.data ??
-                    OrcamentoModel(
-                      id: OrcamentoRepository.orcamentoDocId,
-                      valorMaximo: 0.0,
+                    final OrcamentoModel orcamento =
+                        snapshot.data ??
+                        OrcamentoModel(
+                          id: OrcamentoRepository.orcamentoDocId,
+                          valorMaximo: 0.0,
+                        );
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Seu Orçamento Atual',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'R\$ ${orcamento.valorMaximo.toStringAsFixed(2).replaceAll('.', ',')}',
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                        ),
+                      ],
                     );
-
-                return Text(
-                  'Seu Orçamento Atual: R\$ ${orcamento.valorMaximo.toStringAsFixed(2).replaceAll('.', ',')}',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                );
-              },
+                  },
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
+
+            // Campo para definir o novo valor
+            Text(
+              'Definir Novo Orçamento',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: _orcamentoController,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: const InputDecoration(
-                labelText: 'Novo Valor do Orçamento',
+                labelText: 'Valor (R\$)',
                 hintText: 'Ex: 500,00',
                 prefixText: 'R\$ ',
                 border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.white,
               ),
             ),
             const SizedBox(height: 20),
@@ -119,6 +155,9 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
                 onPressed: _salvarOrcamento,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
                 ),
                 child: const Text(
                   'Salvar Orçamento',
