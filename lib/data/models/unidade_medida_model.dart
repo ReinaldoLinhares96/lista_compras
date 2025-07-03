@@ -1,32 +1,32 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../core/enums/unidade_medida_type.dart';
+import 'package:uuid/uuid.dart'; // Para gerar IDs únicos
 
 class UnidadeMedidaModel {
   final String id;
-  final UnidadeMedidaType unidadeMedidaType;
   final String descricao;
+  final String simbolo; // NOVO CAMPO
 
   UnidadeMedidaModel({
-    required this.id,
-    required this.unidadeMedidaType,
+    String? id,
     required this.descricao,
-  });
+    required this.simbolo,
+  }) : id = id ?? const Uuid().v4();
 
   // Converte um DocumentSnapshot do Firestore para um objeto UnidadeMedidaModel
   factory UnidadeMedidaModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return UnidadeMedidaModel(
       id: doc.id,
-      unidadeMedidaType: UnidadeMedidaTypeExtension.fromValue(data['unidadeMedidaType'] as int),
       descricao: data['descricao'] as String,
+      simbolo: data['simbolo'] as String,
     );
   }
 
   // Converte um objeto UnidadeMedidaModel para um Map para ser salvo no Firestore
   Map<String, dynamic> toFirestore() {
     return {
-      'unidadeMedidaType': unidadeMedidaType.value,
       'descricao': descricao,
+      'simbolo': simbolo, // SALVAR O NOVO CAMPO
     };
   }
 }

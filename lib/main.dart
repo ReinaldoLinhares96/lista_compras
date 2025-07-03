@@ -8,7 +8,6 @@ import 'data/repositories/categoria_repository.dart';
 import 'data/repositories/compra_status_repository.dart';
 import 'data/repositories/orcamento_repository.dart';
 import 'data/repositories/compra_repository.dart'; // Importe o novo repositório
-// import 'data/repositories/item_compra_repository.dart'; // Não precisa inicializar aqui
 
 import 'presentation/pages/product_list_page.dart';
 
@@ -17,13 +16,8 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Inicializa todos os repositórios padrão
-  await UnidadeMedidaRepository().initializeDefaultUnidadesMedida();
-  await CategoriaRepository().initializeDefaultCategorias();
   await CompraStatusRepository().initializeDefaultCompraStatus();
   await OrcamentoRepository().initializeDefaultOrcamento();
-  // Não há necessidade de chamar initializeDefaultCompraStatus aqui novamente.
-  // A chamada para CompraRepository().iniciarNovaCompra() será feita na UI.
-
   runApp(const MyApp());
 }
 

@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
+import 'package:lista_compras/presentation/widgets/add_frequent_product_to_cart_modal.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/models/item_compra_model.dart';
 import '../../data/models/produto_model.dart';
@@ -45,6 +46,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
       []; // Itens que estão no carrinho virtual da compra ativa
 
   Map<String, String> _unidadesDescricao = {};
+  Map<String, String> _unidadesSimbolo = {};
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
@@ -70,6 +72,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     _unidadeMedidaRepository.getUnidadesMedida().listen((unidades) {
       setState(() {
         _unidadesDescricao = {for (var u in unidades) u.id: u.descricao};
+        _unidadesSimbolo = {for (var u in unidades) u.id: u.simbolo};
       });
     });
     _categoriaRepository.getCategorias().listen((categorias) {
@@ -137,22 +140,29 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
-  // Adicionar produto da lista frequente ao carrinho (via modal)
+  // CORREÇÃO: Chama o novo modal AddFrequentProductToCartModal
   Future<void> _addProdutoFrequenteToCarrinho(ProdutoModel produto) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        // Agora, em vez de um StatefulBuilder aqui, você usa o seu novo widget
-        return AddEditProductModalForm(
-          produto: produto,
-          unidadesDescricao: _unidadesDescricao,
-          categoriasDescricao: _categoriasDescricao,
-          categoriasMap:
-              _categoriasMap, // _categoriasMap deve ser acessível aqui
+        return AddFrequentProductToCartModal(
+          product: produto,
+          activePurchase: _compraAtiva,
+          showSnackbar: (message) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(message)));
+            }
+          },
+          unidadesDescricao:
+              _unidadesDescricao, // Passa as descrições das unidades
+          compraRepository: _compraRepository,
+          itemCompraRepository: _itemCompraRepository,
         );
       },
-    ); // whenComplete não é necessário aqui, pois o widget do modal gerencia seus próprios controladores
+    );
   }
 
   // Remover item do carrinho
@@ -489,8 +499,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                             headerBuilder: (context, isExpanded) {
                               return ListTile(
                                 title: Text(
-                                  'Precisa Comprar (${produtosPrecisaComprar.length} itens)',
-                                  style: Theme.of(context).textTheme.titleLarge,
+                                  'Precisa Comprar (${produtosPrecisaComprar.length})',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                               );
                             },
@@ -514,7 +525,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                                   produto.quantidadeEmEstoque)
                                               .toStringAsFixed(1);
                                       final unidade =
-                                          _unidadesDescricao[produto
+                                          _unidadesSimbolo[produto
                                               .unidadeMedidaId] ??
                                           'N/A';
                                       return Card(
@@ -560,8 +571,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                             headerBuilder: (context, isExpanded) {
                               return ListTile(
                                 title: Text(
-                                  'No Carrinho (${_itensNoCarrinho.length} itens)',
-                                  style: Theme.of(context).textTheme.titleLarge,
+                                  'No Carrinho (${_itensNoCarrinho.length})',
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
                               );
                             },

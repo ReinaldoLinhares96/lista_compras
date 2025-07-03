@@ -1,55 +1,50 @@
-// ignore_for_file: unnecessary_brace_in_string_interps
+// ignore_for_file: unused_field
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import '../models/categoria_model.dart';
 import '../../core/constants/firestore_collections.dart';
-import '../../core/enums/categoria_type.dart';
 
 class CategoriaRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // Adiciona as categorias padrão se não existirem
-  Future<void> initializeDefaultCategorias() async {
-    final CollectionReference collection = _firestore.collection(FirestoreCollections.categorias);
-
-    for (var type in CategoriaType.values) {
-      final docId = type.value.toString(); // Usar o valor do enum como ID do documento
-      final doc = await collection.doc(docId).get();
-
-      if (!doc.exists) {
-        String description;
-        switch (type) {
-          case CategoriaType.alimentos:
-            description = 'Alimentos';
-            break;
-          case CategoriaType.higienePessoal:
-            description = 'Higiene Pessoal';
-            break;
-          case CategoriaType.limpezaDomestica:
-            description = 'Limpeza Doméstica';
-            break;
-        }
-        final newCategoria = CategoriaModel(
-          id: docId,
-          categoriaType: type,
-          descricao: description,
-        );
-        await collection.doc(docId).set(newCategoria.toFirestore());
-        if (kDebugMode) {
-          print('Categoria padrão "${description}" adicionada.');
-        }
-      }
-    }
-  }
+  final CollectionReference _categoriasCollection = FirebaseFirestore.instance
+      .collection(FirestoreCollections.categorias);
 
   // Obtém todas as categorias
   Stream<List<CategoriaModel>> getCategorias() {
-    return _firestore
-        .collection(FirestoreCollections.categorias)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CategoriaModel.fromFirestore(doc))
-            .toList());
+    return _categoriasCollection.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map((doc) => CategoriaModel.fromFirestore(doc))
+          .toList(),
+    );
+  }
+
+  // MÉTODO addCategoria ATUALIZADO
+  Future<void> addCategoria(CategoriaModel categoria) async {
+    // Se o ID for gerado no modelo (UUID), usamos set.
+    await _categoriasCollection.doc(categoria.id).set(categoria.toFirestore());
+  }
+
+  // NOVO MÉTODO PARA BUSCAR POR DESCRIÇÃO (para validação de duplicidade)
+  Future<CategoriaModel?> getCategoriaByDescricao(String descricao) async {
+    final querySnapshot = await _categoriasCollection
+        .where('descricao', isEqualTo: descricao)
+        .limit(1)
+        .get();
+    if (querySnapshot.docs.isNotEmpty) {
+      return CategoriaModel.fromFirestore(querySnapshot.docs.first);
+    }
+    return null;
+  }
+
+  // NOVO: Método para atualizar uma categoria existente
+  Future<void> updateCategoria(CategoriaModel categoria) async {
+    await _categoriasCollection
+        .doc(categoria.id)
+        .update(categoria.toFirestore());
+  }
+
+  // NOVO: Método para deletar uma categoria
+  Future<void> deleteCategoria(String id) async {
+    await _categoriasCollection.doc(id).delete();
   }
 }

@@ -2,15 +2,13 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart'; // Para gerar IDs
-import '../../core/enums/unidade_medida_type.dart';
-import '../../core/enums/categoria_type.dart';
 
 class ProdutoModel {
   final String id;
   final String nome;
   final double quantidadeIdealMes;
   final String unidadeMedidaId; // Referencia o ID da UnidadeMedidaModel
-  final String categoriaId;     // Referencia o ID da CategoriaModel
+  final String categoriaId; // Referencia o ID da CategoriaModel
   final double quantidadeEmEstoque;
   final bool isActive;
   final bool isRemoved;
@@ -28,9 +26,9 @@ class ProdutoModel {
     this.isRemoved = false,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : id = id ?? const Uuid().v4(), // Gera um UUID se nenhum ID for fornecido
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(), // Gera um UUID se nenhum ID for fornecido
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   // Cria uma cópia do ProdutoModel com novos valores (útil para atualizações)
   ProdutoModel copyWith({
@@ -68,7 +66,8 @@ class ProdutoModel {
       quantidadeIdealMes: (data['quantidadeIdealMes'] as num).toDouble(),
       unidadeMedidaId: data['unidadeMedidaId'] as String,
       categoriaId: data['categoriaId'] as String,
-      quantidadeEmEstoque: (data['quantidadeEmEstoque'] as num? ?? 0.0).toDouble(), // Null-safe
+      quantidadeEmEstoque: (data['quantidadeEmEstoque'] as num? ?? 0.0)
+          .toDouble(), // Null-safe
       isActive: data['isActive'] as bool? ?? true,
       isRemoved: data['isRemoved'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
