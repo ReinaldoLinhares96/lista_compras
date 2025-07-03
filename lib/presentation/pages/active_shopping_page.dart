@@ -1,7 +1,6 @@
 // active_shopping_page.dart
-// Ignore as linhas que você já tem no arquivo original, o importante são as seções alteradas
 
-// ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field
+// ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,9 +17,8 @@ import '../../data/repositories/orcamento_repository.dart';
 import '../../data/repositories/unidade_medida_repository.dart'; // Para descrições
 import '../../data/repositories/categoria_repository.dart'; // Para descrições
 import '../../core/enums/compra_status_type.dart';
-// Importe os novos widgets dos modais
-import 'package:lista_compras/presentation/widgets/add_edit_product_modal_form.dart';
-import 'package:lista_compras/presentation/widgets/add_avulso_modal_form.dart'; // Importe este
+
+import 'package:lista_compras/presentation/widgets/add_avulso_modal_form.dart';
 
 class ActiveShoppingPage extends StatefulWidget {
   const ActiveShoppingPage({super.key});
@@ -40,17 +38,14 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
 
   CompraModel? _compraAtiva;
   OrcamentoModel? _orcamentoAtual;
-  List<ProdutoModel> _allProdutosFrequentes =
-      []; // Todos os produtos da lista frequente
-  List<ItemCompraModel> _itensNoCarrinho =
-      []; // Itens que estão no carrinho virtual da compra ativa
+  List<ProdutoModel> _allProdutosFrequentes = [];
+  List<ItemCompraModel> _itensNoCarrinho = [];
 
   Map<String, String> _unidadesDescricao = {};
   Map<String, String> _unidadesSimbolo = {};
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
-  // Para gerenciar o estado dos ExpansionPanelList
   bool _panelPrecisaComprarExpanded = true;
   bool _panelNoCarrinhoExpanded = true;
 
@@ -60,7 +55,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     _listenToAuxiliaryData();
     _listenToCompraAtiva();
     _listenToOrcamento();
-    _listenToAllProdutosFrequentes(); // Escuta todos os produtos frequentes
+    _listenToAllProdutosFrequentes();
   }
 
   @override
@@ -100,7 +95,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         });
       } else {
         setState(() {
-          _itensNoCarrinho = []; // Limpa se não houver compra ativa
+          _itensNoCarrinho = [];
         });
       }
     });
@@ -122,7 +117,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     });
   }
 
-  // Iniciar uma nova compra
   Future<void> _iniciarCompra() async {
     try {
       await _compraRepository.iniciarNovaCompra();
@@ -140,7 +134,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
-  // CORREÇÃO: Chama o novo modal AddFrequentProductToCartModal
   Future<void> _addProdutoFrequenteToCarrinho(ProdutoModel produto) async {
     showModalBottomSheet(
       context: context,
@@ -156,8 +149,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ).showSnackBar(SnackBar(content: Text(message)));
             }
           },
-          unidadesDescricao:
-              _unidadesDescricao, // Passa as descrições das unidades
+          unidadesDescricao: _unidadesDescricao,
           compraRepository: _compraRepository,
           itemCompraRepository: _itemCompraRepository,
         );
@@ -165,14 +157,12 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     );
   }
 
-  // Remover item do carrinho
   Future<void> _removeItemFromCarrinho(ItemCompraModel item) async {
     try {
       if (_compraAtiva == null) return;
 
       await _itemCompraRepository.removeItemCompra(item.id);
 
-      // Recalcula o total da compra e atualiza no Firebase
       final currentTotal = _compraAtiva!.valorTotalCalculado - item.subtotal;
       await _compraRepository.updateCompra(
         _compraAtiva!.copyWith(valorTotalCalculado: currentTotal),
@@ -192,13 +182,11 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
-  // Adicionar item avulso ao carrinho
   Future<void> _addAvulsoToCarrinho() async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        // Use o novo widget para o formulário avulso
         return AddAvulsoModalForm(
           compraAtiva: _compraAtiva,
           showSnackbar: (message) {
@@ -208,12 +196,13 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ).showSnackBar(SnackBar(content: Text(message)));
             }
           },
+          itemCompraRepository: _itemCompraRepository,
+          compraRepository: _compraRepository,
         );
       },
-    ); // whenComplete não é necessário aqui
+    );
   }
 
-  // Finalizar compra (mantido o fluxo existente, mas aprimorado)
   Future<void> _finalizarCompra() async {
     if (_compraAtiva == null || _itensNoCarrinho.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -251,17 +240,14 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
           _compraAtiva!.valorTotalCalculado,
         );
 
-        // Atualizar QuantidadeEmEstoque dos produtos da lista frequente
         for (var item in _itensNoCarrinho) {
           if (item.produtoId != null) {
-            // Se for um produto da lista frequente
             final produtoOriginal = _allProdutosFrequentes.firstWhere(
               (p) => p.id == item.produtoId,
             );
             final updatedEstoque =
                 produtoOriginal.quantidadeEmEstoque + item.quantidadeComprada;
 
-            // Lógica para notificar e atualizar Quantidade Ideal, se exceder
             if (updatedEstoque > produtoOriginal.quantidadeIdealMes) {
               await showDialog(
                 context: context,
@@ -273,7 +259,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                   actions: [
                     TextButton(
                       onPressed: () {
-                        // Atualiza apenas o estoque
                         _produtoRepository.updateProduto(
                           produtoOriginal.copyWith(
                             quantidadeEmEstoque: updatedEstoque,
@@ -286,7 +271,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                     ),
                     TextButton(
                       onPressed: () {
-                        // Atualiza estoque E ideal
                         _produtoRepository.updateProduto(
                           produtoOriginal.copyWith(
                             quantidadeEmEstoque: updatedEstoque,
@@ -302,8 +286,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                 ),
               );
             } else {
-              // Apenas atualiza o estoque se não exceder
-              await _produtoRepository.updateProduto(
+              _produtoRepository.updateProduto(
                 produtoOriginal.copyWith(
                   quantidadeEmEstoque: updatedEstoque,
                   updatedAt: DateTime.now(),
@@ -333,40 +316,20 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     double saldoRestante =
         (_orcamentoAtual?.valorMaximo ?? 0.0) -
         (_compraAtiva?.valorTotalCalculado ?? 0.0);
-    Color saldoColor = Colors.green;
-    String saldoAlert = '';
-    IconData? saldoIcon;
-
-    if (saldoRestante < 0) {
-      saldoColor = Colors.red;
-      saldoAlert = 'Orçamento Excedido!';
-      saldoIcon = Icons.error;
-    } else if (saldoRestante < (_orcamentoAtual?.valorMaximo ?? 0.0) * 0.2 &&
-        (_orcamentoAtual?.valorMaximo ?? 0) > 0) {
-      saldoColor = Colors.orange;
-      saldoAlert = 'Atenção ao Orçamento!';
-      saldoIcon = Icons.warning;
-    }
-
-    // Produtos que precisam ser comprados (calculados com base no estoque e nos itens no carrinho)
     final List<ProdutoModel> produtosPrecisaComprar = _allProdutosFrequentes
         .where((p) {
-          // Quantidade no estoque que o usuário TEM
           double currentStock = p.quantidadeEmEstoque;
-          // Quantidade deste produto já "no carrinho" na sessão atual
           double quantityInCart = _itensNoCarrinho
               .where((item) => item.produtoId == p.id)
               .fold(0.0, (sum, item) => sum + item.quantidadeComprada);
 
-          // A necessidade real agora considera o que já está no carrinho
           return (p.quantidadeIdealMes - currentStock - quantityInCart) > 0;
         })
         .toList();
 
-    // Organiza os itens no carrinho por categoria para exibição
     final Map<String, List<ItemCompraModel>> itensNoCarrinhoPorCategoria = {};
     for (var item in _itensNoCarrinho) {
-      String categoriaDesc = 'Itens Avulsos'; // Padrão para avulsos
+      String categoriaDesc = 'Itens Avulsos';
       if (item.produtoId != null) {
         final produtoFreq = _allProdutosFrequentes.firstWhereOrNull(
           (p) => p.id == item.produtoId,
@@ -386,12 +349,18 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Compra Ativa'),
+        // AppBar agora está aqui
+        title: Text(
+          'Saldo: R\$ ${saldoRestante.toStringAsFixed(2).replaceAll('.', ',')}',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(color: Colors.blueGrey),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.blue.shade100,
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.add_box_outlined,
-            ), // Ícone para adicionar avulso
+            icon: const Icon(Icons.add_box_outlined, color: Colors.blueGrey),
             onPressed: _addAvulsoToCarrinho,
             tooltip: 'Adicionar Item Avulso',
           ),
@@ -400,7 +369,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                   CompraStatusType.ativa.value.toString() &&
               _itensNoCarrinho.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.check_circle_outline),
+              icon: const Icon(Icons.check_circle_outline, color: Colors.green),
               onPressed: _finalizarCompra,
               tooltip: 'Finalizar Compra',
             )
@@ -408,61 +377,45 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               _compraAtiva!.compraStatusId ==
                   CompraStatusType.ativa.value.toString())
             IconButton(
-              // Ícone desabilitado quando carrinho está vazio
               icon: Icon(Icons.check_circle_outline, color: Colors.grey[400]),
-              onPressed: null, // Desabilitado
+              onPressed: null,
               tooltip: 'Carrinho vazio para finalizar',
             ),
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Seção de Status do Orçamento e Compra
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            color: saldoColor.withOpacity(0.1),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Orçamento Atual: R\$ ${_orcamentoAtual?.valorMaximo.toStringAsFixed(2).replaceAll('.', ',') ?? '0,00'}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Text(
-                  'Total no Carrinho: R\$ ${_compraAtiva?.valorTotalCalculado.toStringAsFixed(2).replaceAll('.', ',') ?? '0,00'}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Saldo Restante: R\$ ${saldoRestante.toStringAsFixed(2).replaceAll('.', ',')}',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: saldoColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    if (saldoIcon != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(saldoIcon, color: saldoColor),
-                    ],
-                  ],
-                ),
-                if (saldoAlert.isNotEmpty)
+          Card(
+            elevation: 4,
+            margin: const EdgeInsets.only(bottom: 20.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    saldoAlert,
-                    style: TextStyle(
-                      color: saldoColor,
+                    'Total No Carrinho',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'R\$ ${_compraAtiva?.valorTotalCalculado.toStringAsFixed(2).replaceAll('.', ',') ?? '0,00'}',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
-          // Condição para exibir "Nenhuma compra ativa" ou os painéis
+
           _compraAtiva == null ||
                   _compraAtiva!.compraStatusId !=
                       CompraStatusType.ativa.value.toString()
@@ -471,12 +424,27 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Nenhuma compra ativa no momento.'),
-                        const SizedBox(height: 10),
+                        const Text(
+                          'Nenhuma compra ativa no momento.',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 15),
                         ElevatedButton.icon(
                           onPressed: _iniciarCompra,
                           icon: const Icon(Icons.shopping_cart),
-                          label: const Text('Iniciar Nova Compra'),
+                          label: const Text(
+                            'Iniciar Nova Compra',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 15,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -486,12 +454,13 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                   child: ListView(
                     padding: const EdgeInsets.all(8.0),
                     children: [
-                      // Painel "Precisa Comprar"
                       ExpansionPanelList(
+                        elevation: 4,
+                        expandedHeaderPadding: EdgeInsets.zero,
+                        animationDuration: const Duration(milliseconds: 400),
                         expansionCallback: (panelIndex, isExpanded) {
                           setState(() {
-                            _panelPrecisaComprarExpanded =
-                                !_panelPrecisaComprarExpanded;
+                            _panelPrecisaComprarExpanded = !isExpanded;
                           });
                         },
                         children: [
@@ -499,9 +468,12 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                             headerBuilder: (context, isExpanded) {
                               return ListTile(
                                 title: Text(
-                                  'Precisa Comprar (${produtosPrecisaComprar.length})',
+                                  'Precisa Comprar (${produtosPrecisaComprar.length} itens)',
                                   style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.deepOrange,
+                                      ),
                                 ),
                               );
                             },
@@ -510,6 +482,10 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                     padding: EdgeInsets.all(16.0),
                                     child: Text(
                                       'Você não precisa comprar mais nenhum item da lista! 🎉',
+                                      style: TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   )
                                 : ListView.builder(
@@ -520,28 +496,57 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                     itemBuilder: (context, index) {
                                       final produto =
                                           produtosPrecisaComprar[index];
-                                      final quantidade =
+                                      final quantidadeCalculada =
                                           (produto.quantidadeIdealMes -
-                                                  produto.quantidadeEmEstoque)
-                                              .toStringAsFixed(1);
+                                          produto.quantidadeEmEstoque -
+                                          _itensNoCarrinho
+                                              .where(
+                                                (item) =>
+                                                    item.produtoId ==
+                                                    produto.id,
+                                              )
+                                              .fold(
+                                                0.0,
+                                                (sum, item) =>
+                                                    sum +
+                                                    item.quantidadeComprada,
+                                              ));
                                       final unidade =
                                           _unidadesSimbolo[produto
                                               .unidadeMedidaId] ??
                                           'N/A';
+
+                                      final displayQuantidade =
+                                          quantidadeCalculada > 0
+                                          ? quantidadeCalculada.toStringAsFixed(
+                                              1,
+                                            )
+                                          : '0.0';
+
                                       return Card(
                                         margin: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                           vertical: 4,
                                         ),
+                                        elevation: 2,
                                         child: ListTile(
-                                          title: Text(produto.nome),
+                                          title: Text(
+                                            produto.nome,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                           subtitle: Text(
-                                            'Comprar: $quantidade $unidade',
+                                            'Comprar: $displayQuantidade $unidade',
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                            ),
                                           ),
                                           trailing: IconButton(
                                             icon: const Icon(
                                               Icons.add_circle,
                                               color: Colors.green,
+                                              size: 30,
                                             ),
                                             onPressed: () =>
                                                 _addProdutoFrequenteToCarrinho(
@@ -558,12 +563,13 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // Painel "No Carrinho"
                       ExpansionPanelList(
+                        elevation: 4,
+                        expandedHeaderPadding: EdgeInsets.zero,
+                        animationDuration: const Duration(milliseconds: 400),
                         expansionCallback: (panelIndex, isExpanded) {
                           setState(() {
-                            _panelNoCarrinhoExpanded =
-                                !_panelNoCarrinhoExpanded;
+                            _panelNoCarrinhoExpanded = !isExpanded;
                           });
                         },
                         children: [
@@ -571,9 +577,12 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                             headerBuilder: (context, isExpanded) {
                               return ListTile(
                                 title: Text(
-                                  'No Carrinho (${_itensNoCarrinho.length})',
+                                  'No Carrinho (${_itensNoCarrinho.length} itens)',
                                   style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade700,
+                                      ),
                                 ),
                               );
                             },
@@ -582,6 +591,10 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                     padding: EdgeInsets.all(16.0),
                                     child: Text(
                                       'Nenhum item adicionado ao carrinho ainda.',
+                                      style: TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   )
                                 : Column(
@@ -609,6 +622,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                                   .titleSmall
                                                   ?.copyWith(
                                                     fontWeight: FontWeight.bold,
+                                                    color: Colors.grey[800],
                                                   ),
                                             ),
                                           ),
@@ -626,10 +640,20 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                                       horizontal: 8,
                                                       vertical: 4,
                                                     ),
+                                                elevation: 2,
                                                 child: ListTile(
-                                                  title: Text(item.nomeProduto),
+                                                  title: Text(
+                                                    item.nomeProduto,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
                                                   subtitle: Text(
                                                     '${item.quantidadeComprada.toStringAsFixed(1)} x R\$ ${item.precoUnitario.toStringAsFixed(2).replaceAll('.', ',')}',
+                                                    style: const TextStyle(
+                                                      color: Colors.blueGrey,
+                                                    ),
                                                   ),
                                                   trailing: Row(
                                                     mainAxisSize:
@@ -637,11 +661,17 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                                     children: [
                                                       Text(
                                                         'R\$ ${item.subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.black87,
+                                                        ),
                                                       ),
                                                       IconButton(
                                                         icon: const Icon(
                                                           Icons.remove_circle,
                                                           color: Colors.red,
+                                                          size: 28,
                                                         ),
                                                         onPressed: () =>
                                                             _removeItemFromCarrinho(
@@ -669,23 +699,10 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                 ),
         ],
       ),
-      floatingActionButton:
-          (_compraAtiva != null &&
-              _compraAtiva!.compraStatusId ==
-                  CompraStatusType.ativa.value.toString())
-          ? FloatingActionButton.extended(
-              onPressed: _addAvulsoToCarrinho, // FAB para adicionar avulso
-              label: const Text('Item Avulso'),
-              icon: const Icon(Icons.add),
-            )
-          : null,
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerFloat, // Centraliza o FAB
     );
   }
 }
 
-// Extensão para firstWhereOrNull em listas, para evitar erro se item não for encontrado
 extension IterableExtension<T> on Iterable<T> {
   T? firstWhereOrNull(bool Function(T element) test) {
     for (var element in this) {

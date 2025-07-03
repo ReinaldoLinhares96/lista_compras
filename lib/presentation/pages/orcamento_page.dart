@@ -16,6 +16,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
   @override
   void initState() {
     super.initState();
+    // Escuta as mudanças no orçamento para manter o campo atualizado
     _orcamentoRepository.getOrcamento().listen((orcamento) {
       if (_orcamentoController.text !=
           orcamento.valorMaximo.toStringAsFixed(2).replaceAll('.', ',')) {
@@ -65,22 +66,17 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar já é gerenciada pela ProductListPage agora
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.stretch, // Estica os elementos horizontalmente
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Card para exibir o orçamento atual
             Card(
-              elevation: 4, // Sombra para o card
-              margin: const EdgeInsets.only(
-                bottom: 20.0,
-              ), // Espaçamento abaixo do card
+              elevation: 4,
+              margin: const EdgeInsets.only(bottom: 20.0),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.0),
-              ), // Bordas arredondadas
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: StreamBuilder<OrcamentoModel>(
@@ -128,7 +124,6 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
               ),
             ),
 
-            // Campo para definir o novo valor
             Text(
               'Definir Novo Orçamento',
               style: Theme.of(context).textTheme.titleMedium,

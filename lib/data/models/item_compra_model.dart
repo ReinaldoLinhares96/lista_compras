@@ -8,9 +8,9 @@ class ItemCompraModel {
   final String nomeProduto;
   final double quantidadeComprada;
   final double precoUnitario;
-  final double subtotal;
+  final double subtotal; // Este será o resultado do cálculo
   final bool ehAvulso;
-  final bool adicionadoNaLista;
+  final bool adicionadoNaLista; // Nome correto da propriedade
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,14 +21,15 @@ class ItemCompraModel {
     required this.nomeProduto,
     required this.quantidadeComprada,
     required this.precoUnitario,
-    this.subtotal = 0.0, // Será calculado
+    double? subtotal,
     this.ehAvulso = false,
-    this.adicionadoNaLista = false,
+    this.adicionadoNaLista = false, // Nome correto da propriedade no construtor
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : id = id ?? const Uuid().v4(),   
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       subtotal = subtotal ?? (quantidadeComprada * precoUnitario),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   ItemCompraModel copyWith({
     String? id,
@@ -39,20 +40,25 @@ class ItemCompraModel {
     double? precoUnitario,
     double? subtotal,
     bool? ehAvulso,
-    bool? adicionadoNaLista,
+    bool? adicionadoNaLista, // Nome correto da propriedade no copyWith
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
+    final newQuantidadeComprada = quantidadeComprada ?? this.quantidadeComprada;
+    final newPrecoUnitario = precoUnitario ?? this.precoUnitario;
+    final calculatedSubtotal = newQuantidadeComprada * newPrecoUnitario;
+
     return ItemCompraModel(
       id: id ?? this.id,
       compraId: compraId ?? this.compraId,
       produtoId: produtoId ?? this.produtoId,
       nomeProduto: nomeProduto ?? this.nomeProduto,
-      quantidadeComprada: quantidadeComprada ?? this.quantidadeComprada,
-      precoUnitario: precoUnitario ?? this.precoUnitario,
-      subtotal: subtotal ?? (quantidadeComprada ?? this.quantidadeComprada) * (precoUnitario ?? this.precoUnitario),
+      quantidadeComprada: newQuantidadeComprada,
+      precoUnitario: newPrecoUnitario,
+      subtotal: subtotal ?? calculatedSubtotal,
       ehAvulso: ehAvulso ?? this.ehAvulso,
-      adicionadoNaLista: adicionadoNaLista ?? this.adicionadoNaLista,
+      adicionadoNaLista:
+          adicionadoNaLista ?? this.adicionadoNaLista, // CORRIGIDO AQUI!
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -67,7 +73,7 @@ class ItemCompraModel {
       nomeProduto: data['nomeProduto'] as String,
       quantidadeComprada: (data['quantidadeComprada'] as num).toDouble(),
       precoUnitario: (data['precoUnitario'] as num).toDouble(),
-      subtotal: (data['subtotal'] as num? ?? 0.0).toDouble(), // Garante que o subtotal exista
+      subtotal: (data['subtotal'] as num? ?? 0.0).toDouble(),
       ehAvulso: data['ehAvulso'] as bool? ?? false,
       adicionadoNaLista: data['adicionadoNaLista'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp).toDate(),

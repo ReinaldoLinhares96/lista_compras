@@ -1,7 +1,7 @@
-// ignore_for_file: unused_import
+// ignore_for_file: unused_import, duplicate_ignore
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Para FieldValue.serverTimestamp
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
 import 'package:lista_compras/data/models/item_compra_model.dart';
 import 'package:lista_compras/data/models/produto_model.dart';
@@ -10,10 +10,9 @@ import 'package:lista_compras/data/repositories/item_compra_repository.dart';
 
 class AddFrequentProductToCartModal extends StatefulWidget {
   final ProdutoModel product;
-  final CompraModel? activePurchase; // Compra ativa atual
-  final Function(String) showSnackbar; // Callback para exibir Snackbar
-  final Map<String, String>
-  unidadesDescricao; // Para exibir a descrição da unidade
+  final CompraModel? activePurchase;
+  final Function(String) showSnackbar;
+  final Map<String, String> unidadesDescricao;
   final CompraRepository compraRepository;
   final ItemCompraRepository itemCompraRepository;
 
@@ -38,8 +37,8 @@ class _AddFrequentProductToCartModalState
   late TextEditingController _precoController;
   late double _quantidadeNecessaria;
   bool _isQuantidadeSugerida = true;
-  double _finalQuantity = 0.0;
-  double _finalPrice = 0.0;
+  double? _finalQuantity; // Pode ser nulo
+  double? _finalPrice; // Pode ser nulo
 
   @override
   void initState() {
@@ -56,7 +55,25 @@ class _AddFrequentProductToCartModalState
     _precoController = TextEditingController();
 
     _finalQuantity =
-        _quantidadeNecessaria; // Inicializa com a quantidade sugerida
+        _quantidadeNecessaria; // Inicializa _finalQuantity com a quantidade sugerida
+
+    _precoController.addListener(() {
+      final value = double.tryParse(_precoController.text.replaceAll(',', '.'));
+      setState(() {
+        _finalPrice = value;
+      });
+    });
+
+    _quantidadeController.addListener(() {
+      if (!_isQuantidadeSugerida) {
+        final value = double.tryParse(
+          _quantidadeController.text.replaceAll(',', '.'),
+        );
+        setState(() {
+          _finalQuantity = value;
+        });
+      }
+    });
   }
 
   @override
@@ -67,10 +84,14 @@ class _AddFrequentProductToCartModalState
   }
 
   Future<void> _addItemToCart() async {
-    if (_finalQuantity <= 0 ||
-        _precoController.text.isEmpty ||
-        _finalPrice <= 0) {
-      widget.showSnackbar('Preencha a quantidade e o preço corretamente.');
+    // CORREÇÃO: Validação estrita para valores maiores que zero
+    if (_finalQuantity == null ||
+        _finalQuantity! <= 0 ||
+        _finalPrice == null ||
+        _finalPrice! <= 0) {
+      widget.showSnackbar(
+        'Preencha a quantidade e o preço corretamente com valores maiores que zero.',
+      );
       return;
     }
 
@@ -84,8 +105,8 @@ class _AddFrequentProductToCartModalState
         compraId: widget.activePurchase!.id,
         produtoId: widget.product.id,
         nomeProduto: widget.product.nome,
-        quantidadeComprada: _finalQuantity,
-        precoUnitario: _finalPrice,
+        quantidadeComprada: _finalQuantity!,
+        precoUnitario: _finalPrice!,
         ehAvulso: false,
       );
       await widget.itemCompraRepository.addItemCompra(newItem);
@@ -98,7 +119,7 @@ class _AddFrequentProductToCartModalState
 
       if (mounted) {
         widget.showSnackbar('${widget.product.nome} adicionado ao carrinho!');
-        Navigator.pop(context); // Fecha o modal
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -145,7 +166,8 @@ class _AddFrequentProductToCartModalState
                         _finalQuantity = _quantidadeNecessaria;
                       } else {
                         _quantidadeController.clear();
-                        _finalQuantity = 0.0;
+                        _finalQuantity =
+                            null; // Definir como null se não for sugerida e o campo estiver vazio
                       }
                     });
                   },
@@ -161,29 +183,22 @@ class _AddFrequentProductToCartModalState
                 decoration: const InputDecoration(
                   labelText: 'Quantidade a Adicionar',
                 ),
-                onChanged: (text) {
-                  final value = double.tryParse(text.replaceAll(',', '.'));
-                  if (value != null && value >= 0) {
-                    setState(() {
-                      _finalQuantity = value;
-                    });
-                  }
-                },
               ),
               const SizedBox(height: 10),
-              // Lógica para atualizar a quantidade ideal no modal (apenas informativo)
               Text(
                 'Estoque atual: ${widget.product.quantidadeEmEstoque.toStringAsFixed(1)} ${widget.unidadesDescricao[widget.product.unidadeMedidaId] ?? 'N/A'}',
               ),
               Text(
                 'Quantidade ideal: ${widget.product.quantidadeIdealMes.toStringAsFixed(1)} ${widget.unidadesDescricao[widget.product.unidadeMedidaId] ?? 'N/A'}',
               ),
-              if (_finalQuantity + widget.product.quantidadeEmEstoque >
-                  widget.product.quantidadeIdealMes)
+              // CORREÇÃO: Verificação de nulidade antes da soma
+              if (_finalQuantity != null &&
+                  (_finalQuantity! + widget.product.quantidadeEmEstoque >
+                      widget.product.quantidadeIdealMes))
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
-                    'Ao adicionar este item, seu estoque excederá o ideal em ${((_finalQuantity + widget.product.quantidadeEmEstoque) - widget.product.quantidadeIdealMes).toStringAsFixed(1)}.\nVocê poderá ajustar a quantidade ideal após a compra.',
+                    'Ao adicionar este item, seu estoque excederá o ideal em ${((_finalQuantity! + widget.product.quantidadeEmEstoque) - widget.product.quantidadeIdealMes).toStringAsFixed(1)}.\nVocê poderá ajustar a quantidade ideal após a compra.',
                     style: const TextStyle(color: Colors.orange, fontSize: 12),
                   ),
                 ),
@@ -197,14 +212,6 @@ class _AddFrequentProductToCartModalState
               decoration: const InputDecoration(
                 labelText: 'Preço Unitário (R\$)',
               ),
-              onChanged: (text) {
-                final value = double.tryParse(text.replaceAll(',', '.'));
-                if (value != null && value >= 0) {
-                  setState(() {
-                    _finalPrice = value;
-                  });
-                }
-              },
             ),
             const SizedBox(height: 20),
             SizedBox(

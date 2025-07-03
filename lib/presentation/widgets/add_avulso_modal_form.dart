@@ -1,23 +1,26 @@
 // lib/presentation/widgets/add_avulso_modal_form.dart
 
-// ignore_for_file: unused_import
+// ignore_for_file: unused_import, use_build_context_synchronously, duplicate_ignore
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Se for usar Firestore diretamente aqui
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/item_compra_model.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/repositories/item_compra_repository.dart';
 import '../../data/repositories/compra_repository.dart';
 
-// Este é o novo StatefulWidget para o conteúdo do seu modal "Adicionar Item Avulso"
 class AddAvulsoModalForm extends StatefulWidget {
-  final CompraModel? compraAtiva; // Passar a compra ativa para adicionar o item
-  final Function(String message) showSnackbar; // Callback para exibir Snackbar
+  final CompraModel? compraAtiva;
+  final Function(String message) showSnackbar;
+  final ItemCompraRepository itemCompraRepository;
+  final CompraRepository compraRepository;
 
   const AddAvulsoModalForm({
     super.key,
     this.compraAtiva,
     required this.showSnackbar,
+    required this.itemCompraRepository,
+    required this.compraRepository,
   });
 
   @override
@@ -29,8 +32,8 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
   late TextEditingController _quantidadeController;
   late TextEditingController _precoController;
 
-  final ItemCompraRepository _itemCompraRepository = ItemCompraRepository();
-  final CompraRepository _compraRepository = CompraRepository();
+  double? _finalQuantity;
+  double? _finalPrice;
 
   @override
   void initState() {
@@ -38,6 +41,22 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
     _nomeController = TextEditingController();
     _quantidadeController = TextEditingController();
     _precoController = TextEditingController();
+
+    _quantidadeController.addListener(() {
+      final value = double.tryParse(
+        _quantidadeController.text.replaceAll(',', '.'),
+      );
+      setState(() {
+        _finalQuantity = value;
+      });
+    });
+
+    _precoController.addListener(() {
+      final value = double.tryParse(_precoController.text.replaceAll(',', '.'));
+      setState(() {
+        _finalPrice = value;
+      });
+    });
   }
 
   @override
@@ -89,12 +108,6 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
             ElevatedButton(
               onPressed: () async {
                 final String nome = _nomeController.text;
-                final double? quantidade = double.tryParse(
-                  _quantidadeController.text.replaceAll(',', '.'),
-                );
-                final double? precoUnitario = double.tryParse(
-                  _precoController.text.replaceAll(',', '.'),
-                );
 
                 if (widget.compraAtiva == null) {
                   widget.showSnackbar(
@@ -103,27 +116,31 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
                   return;
                 }
 
+                // CORREÇÃO: Validação estrita para valores maiores que zero
                 if (nome.isEmpty ||
-                    quantidade == null ||
-                    quantidade <= 0 ||
-                    precoUnitario == null ||
-                    precoUnitario <= 0) {
-                  widget.showSnackbar('Preencha todos os campos corretamente.');
+                    _finalQuantity == null ||
+                    _finalQuantity! <= 0 || // Deve ser maior que zero
+                    _finalPrice == null ||
+                    _finalPrice! <= 0) {
+                  // Deve ser maior que zero
+                  widget.showSnackbar(
+                    'Preencha todos os campos corretamente com valores maiores que zero.',
+                  );
                   return;
                 }
 
                 final newItem = ItemCompraModel(
                   compraId: widget.compraAtiva!.id,
                   nomeProduto: nome,
-                  quantidadeComprada: quantidade,
-                  precoUnitario: precoUnitario,
+                  quantidadeComprada: _finalQuantity!,
+                  precoUnitario: _finalPrice!,
                   ehAvulso: true,
                 );
-                await _itemCompraRepository.addItemCompra(newItem);
+                await widget.itemCompraRepository.addItemCompra(newItem);
 
                 final currentTotal =
                     widget.compraAtiva!.valorTotalCalculado + newItem.subtotal;
-                await _compraRepository.updateCompra(
+                await widget.compraRepository.updateCompra(
                   widget.compraAtiva!.copyWith(
                     valorTotalCalculado: currentTotal,
                   ),

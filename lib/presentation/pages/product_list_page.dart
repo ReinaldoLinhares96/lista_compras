@@ -108,7 +108,7 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Future<void> _handleDeleteProduct(ProdutoModel product) async {
-    await _produtoRepository.removeProdutoLogically(product.id);
+    await _produtoRepository.deleteProduto(product.id);
   }
 
   void _handleUpdateStock(ProdutoModel product) async {
