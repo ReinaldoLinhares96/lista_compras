@@ -1,4 +1,6 @@
-// ignore_for_file: unused_field
+// ignore_for_file: unused_field, avoid_print
+import 'dart:math' as developer;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/produto_model.dart';
 import '../../core/constants/firestore_collections.dart';
@@ -13,7 +15,7 @@ class ProdutoRepository {
     await _produtosCollection.doc(produto.id).set(produto.toFirestore());
   }
 
-  // Obter um produto por ID (certifique-se que este método está presente)
+  // Obter um produto por ID
   Future<ProdutoModel?> getProdutoById(String id) async {
     final doc = await _produtosCollection.doc(id).get();
     if (doc.exists) {
@@ -41,9 +43,19 @@ class ProdutoRepository {
 
   // Atualizar um produto existente
   Future<void> updateProduto(ProdutoModel produto) async {
-    await _produtosCollection
-        .doc(produto.id)
-        .update(produto.copyWith(updatedAt: DateTime.now()).toFirestore());
+    // CORREÇÃO: Adicionei um try-catch aqui para pegar o erro exato na origem
+    try {
+      await _produtosCollection
+          .doc(produto.id)
+          .update(produto.copyWith(updatedAt: DateTime.now()).toFirestore());
+    } catch (e, stacktrace) {
+      // Este log deve mostrar a mensagem exata do erro de tipo
+      developer.log(
+        'Erro ao atualizar produto ${produto.nome} no Firestore: $e\n$stacktrace'
+            as num,
+      );
+      rethrow; // Relança o erro para que a ActiveShoppingPage também o veja
+    }
   }
 
   // Atualiza apenas a quantidade em estoque de um produto
@@ -51,10 +63,19 @@ class ProdutoRepository {
     String produtoId,
     double novaQuantidade,
   ) async {
-    await _produtosCollection.doc(produtoId).update({
-      'quantidadeEmEstoque': novaQuantidade,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    // CORREÇÃO: Adicionei um try-catch aqui também
+    try {
+      await _produtosCollection.doc(produtoId).update({
+        'quantidadeEmEstoque': novaQuantidade,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e, stacktrace) {
+      developer.log(
+        'Erro ao atualizar quantidade em estoque para $produtoId no Firestore: $e\n$stacktrace'
+            as num,
+      );
+      rethrow;
+    }
   }
 
   // Remover um produto logicamente

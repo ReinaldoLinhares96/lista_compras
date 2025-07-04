@@ -1,6 +1,6 @@
 // lib/presentation/widgets/add_edit_product_modal_form.dart
 
-// ignore_for_file: unused_import, unused_field
+// ignore_for_file: unused_import, unused_field, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

@@ -1,6 +1,6 @@
 // active_shopping_page.dart
 
-// ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore
+// ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore, avoid_print, unnecessary_brace_in_string_interps, await_only_futures
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,6 +17,7 @@ import '../../data/repositories/orcamento_repository.dart';
 import '../../data/repositories/unidade_medida_repository.dart'; // Para descrições
 import '../../data/repositories/categoria_repository.dart'; // Para descrições
 import '../../core/enums/compra_status_type.dart';
+import 'dart:developer' as developer;
 
 import 'package:lista_compras/presentation/widgets/add_avulso_modal_form.dart';
 
@@ -204,6 +205,8 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   }
 
   Future<void> _finalizarCompra() async {
+    // Manter esta validação inicial.
+    // Se _itensNoCarrinho está vazio, _compraAtiva provavelmente também é nulo ou não deveria ser finalizada.
     if (_compraAtiva == null || _itensNoCarrinho.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -234,22 +237,97 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     );
 
     if (confirm == true) {
+      // **CORREÇÃO DEFINITIVA:** CAPTURAR TODOS OS DADOS NECESSÁRIOS *ANTES* DA OPERAÇÃO DO FIREBASE
+
+      // Cópia do ID e valor total da compra ativa atual (não será afetado pelo stream)
+      final String idDaCompraFinalizada = _compraAtiva!.id;
+      final double valorTotalParaFinalizar = _compraAtiva!.valorTotalCalculado;
+
+      // Cópia da lista de itens do carrinho no momento da finalização
+      final List<ItemCompraModel> itensDaCompraParaProcessar = List.from(
+        _itensNoCarrinho,
+      );
+
       try {
-        await _compraRepository.finalizarCompra(
-          _compraAtiva!.id,
-          _compraAtiva!.valorTotalCalculado,
+        developer.log(
+          'DEBUG: Entrou no Try para finalizar compra. Compra ID capturado: $idDaCompraFinalizada',
         );
 
-        for (var item in _itensNoCarrinho) {
-          if (item.produtoId != null) {
-            final produtoOriginal = _allProdutosFrequentes.firstWhere(
-              (p) => p.id == item.produtoId,
+        // 1. FINALIZAR A COMPRA NO BD (isso fará _compraAtiva se tornar null via stream)
+        await _compraRepository.finalizarCompra(
+          idDaCompraFinalizada, // Usa o ID capturado
+          valorTotalParaFinalizar, // Usa o valor capturado
+        );
+        developer.log(
+          'DEBUG: Compra finalizada no BD. ID: $idDaCompraFinalizada. _compraAtiva AGORA É NULL VIA STREAM.',
+        );
+
+        // 2. PROCESSAR ITENS E ATUALIZAR ESTOQUE USANDO OS DADOS CAPTURADOS
+        developer.log(
+          'DEBUG: Processando ${itensDaCompraParaProcessar.length} itens para atualizar estoque.',
+        );
+
+        if (itensDaCompraParaProcessar.isEmpty) {
+          developer.log(
+            'DEBUG: Nao ha itens na lista capturada para atualizar o estoque.',
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Compra finalizada, mas nenhum item para atualizar estoque.',
+                ),
+              ),
             );
+          }
+          // Não há mais itens para processar, então podemos sair
+          if (mounted) {
+            // Garante que o contexto ainda é válido antes de mostrar SnackBar final
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Compra finalizada com sucesso!')),
+            );
+          }
+          developer.log(
+            'DEBUG: Fim da finalizacao da compra, sem erros aparentes.',
+          );
+          return; // Retorna aqui se não houver itens para evitar o loop
+        }
+
+        for (var item in itensDaCompraParaProcessar) {
+          // ITERAR SOBRE A CÓPIA DA LISTA
+          developer.log(
+            'DEBUG: Entrou no for, Item: ${item.nomeProduto}, Qtd comprada: ${item.quantidadeComprada}',
+          );
+
+          if (item.produtoId != null) {
+            final ProdutoModel? produtoOriginal = _allProdutosFrequentes
+                .firstWhereOrNull((p) => p.id == item.produtoId);
+
+            if (produtoOriginal == null) {
+              developer.log(
+                'DEBUG: PRODUTO ORIGINAL NAO ENCONTRADO PARA ITEM ${item.nomeProduto}. Pulando atualizacao de estoque.',
+              );
+              continue;
+            }
+
+            // Promoção de tipo: 'produtoOriginal' é garantido como não-nulo aqui
             final updatedEstoque =
                 produtoOriginal.quantidadeEmEstoque + item.quantidadeComprada;
 
+            developer.log(
+              'DEBUG: updatedEstoque: ${updatedEstoque.toStringAsFixed(1)}',
+            );
+            developer.log(
+              'DEBUG: quantidadeIdealMes: ${produtoOriginal.quantidadeIdealMes.toStringAsFixed(1)}',
+            );
+
+            ProdutoModel produtoParaAtualizar = produtoOriginal.copyWith(
+              quantidadeEmEstoque: updatedEstoque,
+              updatedAt: DateTime.now(),
+            );
+
             if (updatedEstoque > produtoOriginal.quantidadeIdealMes) {
-              await showDialog(
+              final bool? updateIdeal = await showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Estoque Excedente!'),
@@ -259,49 +337,58 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                   actions: [
                     TextButton(
                       onPressed: () {
-                        _produtoRepository.updateProduto(
-                          produtoOriginal.copyWith(
-                            quantidadeEmEstoque: updatedEstoque,
-                            updatedAt: DateTime.now(),
-                          ),
-                        );
-                        Navigator.of(context).pop();
+                        Navigator.of(context).pop(true);
                       },
-                      child: const Text('Não Atualizar Ideal'),
+                      child: const Text('Atualizar Ideal'),
                     ),
                     TextButton(
                       onPressed: () {
-                        _produtoRepository.updateProduto(
-                          produtoOriginal.copyWith(
-                            quantidadeEmEstoque: updatedEstoque,
-                            quantidadeIdealMes: updatedEstoque,
-                            updatedAt: DateTime.now(),
-                          ),
-                        );
-                        Navigator.of(context).pop();
+                        Navigator.of(context).pop(false);
                       },
-                      child: const Text('Atualizar Ideal'),
+                      child: const Text('Não Atualizar Ideal'),
                     ),
                   ],
                 ),
               );
-            } else {
-              _produtoRepository.updateProduto(
-                produtoOriginal.copyWith(
-                  quantidadeEmEstoque: updatedEstoque,
-                  updatedAt: DateTime.now(),
-                ),
-              );
+              if (updateIdeal == true) {
+                produtoParaAtualizar = produtoParaAtualizar.copyWith(
+                  quantidadeIdealMes: updatedEstoque,
+                );
+                developer.log(
+                  'DEBUG: Usuario escolheu atualizar ideal tambem.',
+                );
+              } else {
+                developer.log('DEBUG: Usuario escolheu NAO atualizar ideal.');
+              }
             }
+
+            developer.log(
+              'DEBUG: Chamando updateProduto para ${produtoOriginal.nome} com estoque ${produtoParaAtualizar.quantidadeEmEstoque}',
+            );
+            await _produtoRepository.updateProduto(produtoParaAtualizar);
+            developer.log(
+              'DEBUG: updateProduto chamado para ${produtoOriginal.nome}.',
+            );
+          } else {
+            developer.log(
+              'DEBUG: Item ${item.nomeProduto} eh avulso, estoque nao sera atualizado.',
+            );
           }
         }
 
+        // SnackBar final de sucesso, movida para cá para garantir que sempre apareça após tudo
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra finalizada com sucesso!')),
           );
         }
-      } catch (e) {
+        developer.log(
+          'DEBUG: Fim da finalizacao da compra, sem erros aparentes.',
+        );
+      } catch (e, stackTrace) {
+        developer.log(
+          'DEBUG: Erro ao finalizar compra: $e\nStackTrace: $stackTrace',
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erro ao finalizar compra: $e')),
@@ -459,8 +546,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         expandedHeaderPadding: EdgeInsets.zero,
                         animationDuration: const Duration(milliseconds: 400),
                         expansionCallback: (panelIndex, isExpanded) {
+                          // CORREÇÃO: Atribuir diretamente o isExpanded
                           setState(() {
-                            _panelPrecisaComprarExpanded = !isExpanded;
+                            _panelPrecisaComprarExpanded = isExpanded;
                           });
                         },
                         children: [
@@ -468,12 +556,18 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                             headerBuilder: (context, isExpanded) {
                               return ListTile(
                                 title: Text(
-                                  'Precisa Comprar (${produtosPrecisaComprar.length} itens)',
+                                  'Precisa Comprar (${produtosPrecisaComprar.length})',
                                   style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.deepOrange,
                                       ),
+                                ),
+                                trailing: Icon(
+                                  // Ícone de seta
+                                  _panelPrecisaComprarExpanded
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
                                 ),
                               );
                             },
@@ -568,8 +662,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         expandedHeaderPadding: EdgeInsets.zero,
                         animationDuration: const Duration(milliseconds: 400),
                         expansionCallback: (panelIndex, isExpanded) {
+                          // CORREÇÃO: Atribuir diretamente o isExpanded
                           setState(() {
-                            _panelNoCarrinhoExpanded = !isExpanded;
+                            _panelNoCarrinhoExpanded = isExpanded;
                           });
                         },
                         children: [
@@ -577,12 +672,18 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                             headerBuilder: (context, isExpanded) {
                               return ListTile(
                                 title: Text(
-                                  'No Carrinho (${_itensNoCarrinho.length} itens)',
+                                  'No Carrinho (${_itensNoCarrinho.length})',
                                   style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.blue.shade700,
                                       ),
+                                ),
+                                trailing: Icon(
+                                  // Ícone de seta
+                                  _panelNoCarrinhoExpanded
+                                      ? Icons.keyboard_arrow_up
+                                      : Icons.keyboard_arrow_down,
                                 ),
                               );
                             },

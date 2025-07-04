@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/unidade_medida_model.dart';
 import 'package:lista_compras/data/repositories/unidade_medida_repository.dart';
