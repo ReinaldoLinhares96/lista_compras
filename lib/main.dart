@@ -8,7 +8,7 @@ import 'data/repositories/categoria_repository.dart';
 import 'data/repositories/compra_status_repository.dart';
 import 'data/repositories/orcamento_repository.dart';
 import 'data/repositories/compra_repository.dart'; // Importe o novo repositório
-
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'presentation/pages/product_list_page.dart';
 
 void main() async {
@@ -27,6 +27,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      localizationsDelegates: const [
+        // Adicione
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        // Adicione
+        Locale('pt', 'BR'),
+        // ... (outras que precisar)
+      ],
       title: 'Lista de Compras', // Nome do projeto atualizado
       theme: ThemeData(
         primarySwatch: Colors.blue,

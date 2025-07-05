@@ -104,4 +104,72 @@ class CompraRepository {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  // NOVO: Método para obter todas as compras (ativas, finalizadas, canceladas)
+  Stream<List<CompraModel>> getAllCompras() {
+    // Ordenar pela data de criação ou data de fim (se existir), da mais recente para a mais antiga
+    return _comprasCollection
+        .orderBy(
+          'dataHoraInicio',
+          descending: true,
+        ) // Ordem primária por data de início
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => CompraModel.fromFirestore(doc))
+              .toList(),
+        );
+  }
+
+  // NOVO: Método para obter todas as compras com filtros
+  Stream<List<CompraModel>> getFilteredCompras({
+    String? statusId,
+    DateTime? startDate,
+    DateTime? endDate,
+    double? minTotal,
+    double? maxTotal,
+  }) {
+    Query query = _comprasCollection;
+
+    // Filtro por status
+    if (statusId != null && statusId.isNotEmpty) {
+      query = query.where('compraStatusId', isEqualTo: statusId);
+    }
+
+    // Filtro por data
+    // O Firestore exige um índice composto para consultas de range em múltiplos campos.
+    // Para simplificar, focaremos no dataHoraInicio para o filtro principal.
+    if (startDate != null) {
+      query = query.where('dataHoraInicio', isGreaterThanOrEqualTo: startDate);
+    }
+    if (endDate != null) {
+      // Para incluir o dia inteiro do endDate, adicione 23h59m59s
+      final adjustedEndDate = endDate.add(
+        const Duration(hours: 23, minutes: 59, seconds: 59),
+      );
+      query = query.where(
+        'dataHoraInicio',
+        isLessThanOrEqualTo: adjustedEndDate,
+      );
+    }
+
+    // Filtro por valor total
+    if (minTotal != null) {
+      query = query.where(
+        'valorTotalCalculado',
+        isGreaterThanOrEqualTo: minTotal,
+      );
+    }
+    if (maxTotal != null) {
+      query = query.where('valorTotalCalculado', isLessThanOrEqualTo: maxTotal);
+    }
+
+    // Ordenação (sempre ordenada, mesmo com filtros)
+    query = query.orderBy('dataHoraInicio', descending: true);
+
+    return query.snapshots().map(
+      (snapshot) =>
+          snapshot.docs.map((doc) => CompraModel.fromFirestore(doc)).toList(),
+    );
+  }
 }

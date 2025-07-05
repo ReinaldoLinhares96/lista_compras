@@ -22,6 +22,7 @@ import 'package:lista_compras/presentation/widgets/add_categoria_modal.dart';
 // NOVOS IMPORTS PARA AS PÁGINAS DE GERENCIAMENTO
 import 'package:lista_compras/presentation/pages/unidade_medida_management_page.dart';
 import 'package:lista_compras/presentation/pages/categoria_management_page.dart';
+import 'package:lista_compras/presentation/pages/purchase_history_page.dart';
 
 // ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, unused_import, unused_element, duplicate_ignore
 
@@ -181,7 +182,22 @@ class _ProductListPageState extends State<ProductListPage> {
                   );
                 },
               ),
-              const Divider(), // Separador
+              ListTile(
+                leading: const Icon(
+                  Icons.history,
+                ), // NOVO: Ícone para Histórico
+                title: const Text('Histórico de Compras'), // NOVO: Título
+                onTap: () {
+                  Navigator.pop(context); // Fecha o modal de opções
+                  Navigator.push(
+                    // Navega para a nova página
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PurchaseHistoryPage(),
+                    ),
+                  );
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.settings_input_component),
                 title: const Text('Gerenciar Unidades de Medida'),

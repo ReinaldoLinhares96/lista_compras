@@ -563,12 +563,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                         color: Colors.deepOrange,
                                       ),
                                 ),
-                                trailing: Icon(
-                                  // Ícone de seta
-                                  _panelPrecisaComprarExpanded
-                                      ? Icons.keyboard_arrow_up
-                                      : Icons.keyboard_arrow_down,
-                                ),
                               );
                             },
                             body: produtosPrecisaComprar.isEmpty
@@ -678,12 +672,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                         fontWeight: FontWeight.bold,
                                         color: Colors.blue.shade700,
                                       ),
-                                ),
-                                trailing: Icon(
-                                  // Ícone de seta
-                                  _panelNoCarrinhoExpanded
-                                      ? Icons.keyboard_arrow_up
-                                      : Icons.keyboard_arrow_down,
                                 ),
                               );
                             },
