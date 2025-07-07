@@ -398,6 +398,76 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
+  // NOVO: Método para cancelar a compra
+  Future<void> _cancelarCompra() async {
+    // A compra só pode ser cancelada se estiver ativa e não for nula
+    if (_compraAtiva == null ||
+        _compraAtiva!.compraStatusId !=
+            CompraStatusType.ativa.value.toString()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhuma compra ativa para cancelar.')),
+      );
+      return;
+    }
+
+    final bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Cancelamento'),
+        content: const Text(
+          'Tem certeza que deseja cancelar esta compra? Todos os itens serão removidos do carrinho.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Não'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sim, Cancelar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        developer.log(
+          'DEBUG: Iniciando cancelamento da compra ID: ${_compraAtiva!.id}',
+        );
+        // Chama o método de cancelar compra no repositório
+        await _compraRepository.cancelarCompra(_compraAtiva!.id);
+        developer.log('DEBUG: Compra cancelada no BD.');
+
+        // Opcional: Você pode querer remover os itens do carrinho também aqui
+        // Embora o status da compra mude, os itens ainda ficam associados a ela.
+        // Se a regra de negócio for limpar o carrinho ao cancelar:
+        final List<ItemCompraModel> itensParaRemover = List.from(
+          _itensNoCarrinho,
+        );
+        for (var item in itensParaRemover) {
+          await _itemCompraRepository.removeItemCompra(item.id);
+        }
+        developer.log('DEBUG: Itens do carrinho removidos após cancelamento.');
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Compra cancelada com sucesso!')),
+          );
+        }
+      } catch (e, stackTrace) {
+        developer.log(
+          'DEBUG: Erro ao cancelar compra: $e\nStackTrace: $stackTrace',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao cancelar compra: $e')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double saldoRestante =
@@ -451,6 +521,23 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
             onPressed: _addAvulsoToCarrinho,
             tooltip: 'Adicionar Item Avulso',
           ),
+          if (_compraAtiva != null &&
+              _compraAtiva!.compraStatusId ==
+                  CompraStatusType.ativa.value.toString())
+            IconButton(
+              icon: const Icon(
+                Icons.cancel_outlined,
+                color: Colors.orange,
+              ), // Ícone de cancelar
+              onPressed: _cancelarCompra,
+              tooltip: 'Cancelar Compra',
+            )
+          else // Botão desabilitado se não houver compra ativa
+            IconButton(
+              icon: Icon(Icons.cancel_outlined, color: Colors.grey[400]),
+              onPressed: null,
+              tooltip: 'Nenhuma compra ativa para cancelar',
+            ),
           if (_compraAtiva != null &&
               _compraAtiva!.compraStatusId ==
                   CompraStatusType.ativa.value.toString() &&
