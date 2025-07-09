@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/orcamento_model.dart';
 import '../../data/repositories/orcamento_repository.dart';
+// Remova qualquer import do Firestore, se estiver aqui (ex: import 'package:cloud_firestore/cloud_firestore.dart';)
 
 class OrcamentoPage extends StatefulWidget {
   const OrcamentoPage({super.key});
@@ -80,6 +81,8 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: StreamBuilder<OrcamentoModel>(
+                  // O OrcamentoRepository já retorna OrcamentoModel no Stream.
+                  // Certifique-se de que o orcamentoDocId existe no OrcamentoRepository
                   stream: _orcamentoRepository.getOrcamento(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -93,12 +96,10 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
                       );
                     }
 
-                    final OrcamentoModel orcamento =
-                        snapshot.data ??
-                        OrcamentoModel(
-                          id: OrcamentoRepository.orcamentoDocId,
-                          valorMaximo: 0.0,
-                        );
+                    // Se a stream pode retornar nulo (ex: orElse no repositório), lide com isso.
+                    // O OrcamentoRepository foi ajustado para retornar OrcamentoModel(id: ..., valorMaximo: 0.0)
+                    // se não encontrar o orçamento, então snapshot.data não deve ser nulo aqui.
+                    final OrcamentoModel orcamento = snapshot.data!;
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

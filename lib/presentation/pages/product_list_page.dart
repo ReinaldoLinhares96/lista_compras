@@ -1,7 +1,6 @@
 // ignore_for_file: prefer_final_fields, avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
 import '../../data/models/unidade_medida_model.dart';
@@ -109,7 +108,10 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Future<void> _handleDeleteProduct(ProdutoModel product) async {
-    await _produtoRepository.deleteProduto(product.id);
+    // Não é mais delete físico, é exclusão lógica via repositório
+    await _produtoRepository.deleteProduto(
+      product.id,
+    ); // Chamada para remoção lógica
   }
 
   void _handleUpdateStock(ProdutoModel product) async {
@@ -200,7 +202,7 @@ class _ProductListPageState extends State<ProductListPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.settings_input_component),
-                title: const Text('Gerenciar Unidades de Medida'),
+                title: const Text('Unidades de Medida'),
                 onTap: () {
                   Navigator.pop(context); // Fecha o modal de opções
                   Navigator.push(
@@ -213,7 +215,7 @@ class _ProductListPageState extends State<ProductListPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.category_outlined),
-                title: const Text('Gerenciar Categorias'),
+                title: const Text('Categorias'),
                 onTap: () {
                   Navigator.pop(context); // Fecha o modal de opções
                   Navigator.push(
@@ -238,16 +240,16 @@ class _ProductListPageState extends State<ProductListPage> {
       appBar: AppBar(
         title: _selectedIndex == 0
             ? const Text(
-                'Lista de Produtos Mensal',
+                'Produtos',
                 style: TextStyle(fontWeight: FontWeight.bold),
               )
             : _selectedIndex == 1
             ? const Text(
-                'Orçamento Mensal',
+                'Orçamento',
                 style: TextStyle(fontWeight: FontWeight.bold),
               )
             : const Text(
-                'Realizar a Compra',
+                'Comprar',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
         centerTitle: true,

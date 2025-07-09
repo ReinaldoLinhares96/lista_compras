@@ -1,7 +1,6 @@
 // ignore_for_file: unused_import, duplicate_ignore
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
 import 'package:lista_compras/data/models/item_compra_model.dart';
 import 'package:lista_compras/data/models/produto_model.dart';

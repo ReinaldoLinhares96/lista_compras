@@ -1,53 +1,71 @@
-// ignore_for_file: unused_field
+// ignore_for_file: cast_from_null_always_fails, depend_on_referenced_packages
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:lista_compras/presentation/pages/active_shopping_page.dart';
 import '../models/unidade_medida_model.dart';
-import '../../core/constants/firestore_collections.dart';
+import 'package:rxdart/rxdart.dart';
 
 class UnidadeMedidaRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _unidadesCollection = FirebaseFirestore.instance
-      .collection(FirestoreCollections.unidadesMedida);
+  late Box<UnidadeMedidaModel> _unidadesBox;
 
-  // Obtém todas as unidades de medida
+  UnidadeMedidaRepository() {
+    _unidadesBox = Hive.box<UnidadeMedidaModel>('unidadesMedidaBox');
+  }
+
   Stream<List<UnidadeMedidaModel>> getUnidadesMedida() {
-    return _unidadesCollection.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => UnidadeMedidaModel.fromFirestore(doc))
-          .toList(),
-    );
+    // Filtrar apenas unidades ativas
+    return _unidadesBox
+        .watch()
+        .map((event) {
+          final allUnidades = _unidadesBox.values
+              .where((u) => u.isActive && !u.isRemoved)
+              .toList(); // FILTRO AQUI
+          allUnidades.sort(
+            (a, b) =>
+                a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()),
+          );
+          return allUnidades;
+        })
+        .startWith(
+          _unidadesBox.values.where((u) => u.isActive && !u.isRemoved).toList(),
+        ); // Emissão inicial filtrada
   }
 
-  // MÉTODO addUnidade ATUALIZADO
   Future<void> addUnidade(UnidadeMedidaModel unidade) async {
-    // Se o ID for gerado no modelo (UUID), usamos set. Se for algo específico, usamos .doc(unidade.id).set()
-    // Para unidades criadas pelo usuário, um UUID gerado pelo modelo é ideal.
-    await _unidadesCollection.doc(unidade.id).set(unidade.toFirestore());
+    await _unidadesBox.put(unidade.id, unidade);
   }
 
-  // NOVO MÉTODO PARA BUSCAR POR DESCRIÇÃO/SÍMBOLO (para validação de duplicidade)
   Future<UnidadeMedidaModel?> getUnidadeByDescricaoAndSimbolo(
     String descricao,
     String simbolo,
   ) async {
-    final querySnapshot = await _unidadesCollection
-        .where('descricao', isEqualTo: descricao)
-        .where('simbolo', isEqualTo: simbolo)
-        .limit(1)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) {
-      return UnidadeMedidaModel.fromFirestore(querySnapshot.docs.first);
-    }
-    return null;
+    return _unidadesBox.values.firstWhereOrNull(
+      (u) =>
+          u.descricao.toLowerCase() == descricao.toLowerCase() &&
+          u.simbolo.toLowerCase() == simbolo.toLowerCase() &&
+          u.isActive &&
+          !u.isRemoved,
+    );
   }
 
-  // NOVO: Método para atualizar uma unidade de medida existente
   Future<void> updateUnidade(UnidadeMedidaModel unidade) async {
-    await _unidadesCollection.doc(unidade.id).update(unidade.toFirestore());
+    // Quando você usa .put() com um HiveObject, ele sobrescreve.
+    // O ideal é pegar o objeto, alterar as propriedades e chamar .save()
+    final existingUnidade = _unidadesBox.get(unidade.id);
+    if (existingUnidade != null) {
+      existingUnidade.descricao = unidade.descricao;
+      existingUnidade.simbolo = unidade.simbolo;
+      existingUnidade.isActive = unidade.isActive;
+      existingUnidade.isRemoved = unidade.isRemoved;
+      await existingUnidade.save();
+    } else {
+      // Se não existe, adicione
+      await _unidadesBox.put(unidade.id, unidade);
+    }
   }
 
-  // NOVO: Método para deletar uma unidade de medida
+  // AGORA É REMOÇÃO LÓGICA
   Future<void> deleteUnidade(String id) async {
-    await _unidadesCollection.doc(id).delete();
+    await _unidadesBox.delete(id);
   }
 }

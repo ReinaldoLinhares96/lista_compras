@@ -1,41 +1,41 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive/hive.dart';
 
-class OrcamentoModel {
+part 'orcamento_model.g.dart';
+
+@HiveType(typeId: 6)
+class OrcamentoModel extends HiveObject {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final double valorMaximo;
-  final DateTime updatedAt;
+  @HiveField(2)
+  DateTime updatedAt;
+  @HiveField(3) // NOVO CAMPO
+  bool isActive;
+  @HiveField(4) // NOVO CAMPO
+  bool isRemoved;
 
   OrcamentoModel({
     required this.id,
     required this.valorMaximo,
     DateTime? updatedAt,
+    this.isActive = true, // NOVO PARÂMETRO
+    this.isRemoved = false, // NOVO PARÂMETRO
   }) : updatedAt = updatedAt ?? DateTime.now();
 
   OrcamentoModel copyWith({
     String? id,
     double? valorMaximo,
     DateTime? updatedAt,
+    bool? isActive, // NOVO PARÂMETRO
+    bool? isRemoved, // NOVO PARÂMETRO
   }) {
     return OrcamentoModel(
       id: id ?? this.id,
       valorMaximo: valorMaximo ?? this.valorMaximo,
       updatedAt: updatedAt ?? this.updatedAt,
+      isActive: isActive ?? this.isActive, // NOVO NO COPYWITH
+      isRemoved: isRemoved ?? this.isRemoved, // NOVO NO COPYWITH
     );
-  }
-
-  factory OrcamentoModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return OrcamentoModel(
-      id: doc.id,
-      valorMaximo: (data['valorMaximo'] as num).toDouble(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-    );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'valorMaximo': valorMaximo,
-      'updatedAt': Timestamp.fromDate(updatedAt),
-    };
   }
 }

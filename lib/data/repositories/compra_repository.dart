@@ -1,127 +1,118 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// ignore_for_file: cast_from_null_always_fails, unnecessary_nullable_for_final_variable_declarations, curly_braces_in_flow_control_structures, unused_import, depend_on_referenced_packages
+
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:lista_compras/presentation/pages/active_shopping_page.dart';
 import '../models/compra_model.dart';
-import '../../core/constants/firestore_collections.dart';
-import '../../core/enums/compra_status_type.dart'; // Para referenciar o enum
+import '../../core/enums/compra_status_type.dart'; // Mantenha este enum
+import '../models/compra_status_model.dart';
+import 'package:rxdart/rxdart.dart';
 
 class CompraRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _comprasCollection = FirebaseFirestore.instance
-      .collection(FirestoreCollections.compras);
+  late Box<CompraModel> _comprasBox;
+  late Box<CompraStatusModel> _compraStatusBox; // Referência à caixa de status
 
-  // Inicia uma nova compra (cria um documento de compra com status 'Ativa')
+  CompraRepository() {
+    _comprasBox = Hive.box<CompraModel>('comprasBox');
+    _compraStatusBox = Hive.box<CompraStatusModel>('compraStatusBox');
+  }
+
   Future<CompraModel> iniciarNovaCompra() async {
-    // Busca o ID do status 'Ativa' na coleção comprasStatus
-    final ativaStatusDoc = await _firestore
-        .collection(FirestoreCollections.comprasStatus)
-        .where('compraStatusType', isEqualTo: CompraStatusType.ativa.value)
-        .limit(1)
-        .get();
+    // Busca o ID do status 'Ativa' da caixa Hive
+    final CompraStatusModel? ativaStatus = _compraStatusBox.values
+        .firstWhereOrNull(
+          (s) => s.id == CompraStatusType.ativa.value.toString(),
+        );
 
-    if (ativaStatusDoc.docs.isEmpty) {
+    if (ativaStatus == null) {
       throw Exception(
-        'Status "Ativa" não encontrado na coleção de status de compra.',
+        'Status "Ativa" não encontrado na caixa de status de compra.',
       );
     }
-    final String ativaStatusId = ativaStatusDoc.docs.first.id;
+    final String ativaStatusId = ativaStatus.id;
 
     final novaCompra = CompraModel(
       dataHoraInicio: DateTime.now(),
-      compraStatusId: ativaStatusId, // Define o status como 'Ativa'
+      compraStatusId: ativaStatusId,
       valorTotalCalculado: 0.0,
       isActive: true,
       isRemoved: false,
     );
-    await _comprasCollection.doc(novaCompra.id).set(novaCompra.toFirestore());
+    await _comprasBox.put(novaCompra.id, novaCompra);
     return novaCompra;
   }
 
-  // Obtém a compra ativa atual (se houver)
   Stream<CompraModel?> getCompraAtiva() {
-    return _comprasCollection
-        .where(
-          'compraStatusId',
-          isEqualTo: CompraStatusType.ativa.value.toString(),
-        ) // Filtra por ID do status "Ativa"
-        .where('isActive', isEqualTo: true)
-        .limit(1) // Espera apenas uma compra ativa por vez para o MVP
-        .snapshots()
-        .map((snapshot) {
-          if (snapshot.docs.isNotEmpty) {
-            return CompraModel.fromFirestore(snapshot.docs.first);
-          }
-          return null; // Nenhuma compra ativa encontrada
-        });
+    return _comprasBox
+        .watch()
+        .map((event) {
+          final CompraStatusModel? ativaStatus = _compraStatusBox.values
+              .firstWhereOrNull(
+                (s) => s.id == CompraStatusType.ativa.value.toString(),
+              );
+          if (ativaStatus == null) return null;
+
+          final compra = _comprasBox.values.firstWhereOrNull(
+            (c) =>
+                c.isActive &&
+                !c.isRemoved &&
+                c.compraStatusId == ativaStatus.id,
+          );
+          return compra;
+        })
+        .startWith(null); // CORREÇÃO: Emissão inicial de null
   }
 
-  // Atualiza uma compra (ex: valor total, data de fim, status)
   Future<void> updateCompra(CompraModel compra) async {
-    await _comprasCollection.doc(compra.id).update(compra.toFirestore());
+    await _comprasBox.put(compra.id, compra);
+    compra.save(); // Salva as alterações
   }
 
-  // Finaliza uma compra (muda o status para 'Finalizada', atualiza data/hora fim)
   Future<void> finalizarCompra(String compraId, double valorFinal) async {
-    // Busca o ID do status 'Finalizada'
-    final finalizadaStatusDoc = await _firestore
-        .collection(FirestoreCollections.comprasStatus)
-        .where('compraStatusType', isEqualTo: CompraStatusType.finalizada.value)
-        .limit(1)
-        .get();
-
-    if (finalizadaStatusDoc.docs.isEmpty) {
-      throw Exception(
-        'Status "Finalizada" não encontrado na coleção de status de compra.',
-      );
-    }
-    final String finalizadaStatusId = finalizadaStatusDoc.docs.first.id;
-
-    await _comprasCollection.doc(compraId).update({
-      'dataHoraFim': FieldValue.serverTimestamp(),
-      'valorTotalCalculado': valorFinal,
-      'compraStatusId': finalizadaStatusId, // Atualiza para 'Finalizada'
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  // Cancela uma compra (muda o status para 'Cancelada')
-  Future<void> cancelarCompra(String compraId) async {
-    // Busca o ID do status 'Cancelada'
-    final canceladaStatusDoc = await _firestore
-        .collection(FirestoreCollections.comprasStatus)
-        .where('compraStatusType', isEqualTo: CompraStatusType.cancelada.value)
-        .limit(1)
-        .get();
-
-    if (canceladaStatusDoc.docs.isEmpty) {
-      throw Exception(
-        'Status "Cancelada" não encontrado na coleção de status de compra.',
-      );
-    }
-    final String canceladaStatusId = canceladaStatusDoc.docs.first.id;
-
-    await _comprasCollection.doc(compraId).update({
-      'dataHoraFim': FieldValue.serverTimestamp(),
-      'compraStatusId': canceladaStatusId, // Atualiza para 'Cancelada'
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  // NOVO: Método para obter todas as compras (ativas, finalizadas, canceladas)
-  Stream<List<CompraModel>> getAllCompras() {
-    // Ordenar pela data de criação ou data de fim (se existir), da mais recente para a mais antiga
-    return _comprasCollection
-        .orderBy(
-          'dataHoraInicio',
-          descending: true,
-        ) // Ordem primária por data de início
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => CompraModel.fromFirestore(doc))
-              .toList(),
+    final CompraStatusModel? finalizadaStatus = _compraStatusBox.values
+        .firstWhereOrNull(
+          (s) => s.id == CompraStatusType.finalizada.value.toString(),
         );
+
+    if (finalizadaStatus == null) {
+      throw Exception(
+        'Status "Finalizada" não encontrado na caixa de status de compra.',
+      );
+    }
+    final String finalizadaStatusId = finalizadaStatus.id;
+
+    final compra = _comprasBox.get(compraId);
+    if (compra != null) {
+      compra.dataHoraFim = DateTime.now();
+      compra.valorTotalCalculado = valorFinal;
+      compra.compraStatusId = finalizadaStatusId;
+      compra.updatedAt = DateTime.now();
+      await compra.save();
+    }
   }
 
-  // NOVO: Método para obter todas as compras com filtros
+  Future<void> cancelarCompra(String compraId, double valorFinal) async {
+    final CompraStatusModel? canceladoStatus = _compraStatusBox.values
+        .firstWhereOrNull(
+          (s) => s.id == CompraStatusType.cancelada.value.toString(),
+        );
+
+    if (canceladoStatus == null) {
+      throw Exception(
+        'Status "Finalizada" não encontrado na caixa de status de compra.',
+      );
+    }
+    final String canceladoStatusId = canceladoStatus.id;
+
+    final compra = _comprasBox.get(compraId);
+    if (compra != null) {
+      compra.dataHoraFim = DateTime.now();
+      compra.valorTotalCalculado = valorFinal;
+      compra.compraStatusId = canceladoStatusId;
+      compra.updatedAt = DateTime.now();
+      await compra.save();
+    }
+  }
+
   Stream<List<CompraModel>> getFilteredCompras({
     String? statusId,
     DateTime? startDate,
@@ -129,47 +120,105 @@ class CompraRepository {
     double? minTotal,
     double? maxTotal,
   }) {
-    Query query = _comprasCollection;
+    return _comprasBox
+        .watch()
+        .map((event) {
+          List<CompraModel> filteredCompras = _comprasBox.values.where((
+            compra,
+          ) {
+            bool matchesStatus =
+                statusId == null || compra.compraStatusId == statusId;
 
-    // Filtro por status
-    if (statusId != null && statusId.isNotEmpty) {
-      query = query.where('compraStatusId', isEqualTo: statusId);
-    }
+            // **CORREÇÃO AQUI:** Usar dataHoraFim para a filtragem de datas, se disponível
+            final DateTime? dateToFilterBy =
+                compra.dataHoraFim ??
+                compra.dataHoraInicio; // Preferir dataFim, se não, dataInicio
 
-    // Filtro por data
-    // O Firestore exige um índice composto para consultas de range em múltiplos campos.
-    // Para simplificar, focaremos no dataHoraInicio para o filtro principal.
-    if (startDate != null) {
-      query = query.where('dataHoraInicio', isGreaterThanOrEqualTo: startDate);
-    }
-    if (endDate != null) {
-      // Para incluir o dia inteiro do endDate, adicione 23h59m59s
-      final adjustedEndDate = endDate.add(
-        const Duration(hours: 23, minutes: 59, seconds: 59),
-      );
-      query = query.where(
-        'dataHoraInicio',
-        isLessThanOrEqualTo: adjustedEndDate,
-      );
-    }
+            bool matchesDate = true;
+            if (startDate != null && dateToFilterBy != null) {
+              matchesDate =
+                  matchesDate &&
+                  (dateToFilterBy.isAfter(
+                        startDate.subtract(const Duration(days: 1)),
+                      ) || // Para incluir o dia inteiro inicial
+                      dateToFilterBy.isAtSameMomentAs(startDate));
+            }
+            if (endDate != null && dateToFilterBy != null) {
+              matchesDate =
+                  matchesDate &&
+                  (dateToFilterBy.isBefore(
+                        endDate.add(const Duration(days: 1)),
+                      ) || // Para incluir o dia inteiro final
+                      dateToFilterBy.isAtSameMomentAs(endDate));
+            }
 
-    // Filtro por valor total
-    if (minTotal != null) {
-      query = query.where(
-        'valorTotalCalculado',
-        isGreaterThanOrEqualTo: minTotal,
-      );
-    }
-    if (maxTotal != null) {
-      query = query.where('valorTotalCalculado', isLessThanOrEqualTo: maxTotal);
-    }
+            // Filtro por valor total (mantido como estava)
+            bool matchesMinTotal =
+                minTotal == null || compra.valorTotalCalculado >= minTotal;
+            bool matchesMaxTotal =
+                maxTotal == null || compra.valorTotalCalculado <= maxTotal;
 
-    // Ordenação (sempre ordenada, mesmo com filtros)
-    query = query.orderBy('dataHoraInicio', descending: true);
+            // Retorna verdadeiro se todas as condições forem atendidas
+            return matchesStatus &&
+                matchesDate &&
+                matchesMinTotal &&
+                matchesMaxTotal;
+          }).toList();
 
-    return query.snapshots().map(
-      (snapshot) =>
-          snapshot.docs.map((doc) => CompraModel.fromFirestore(doc)).toList(),
-    );
+          // **CORREÇÃO AQUI:** Ordenar pela data mais relevante (dataHoraFim)
+          filteredCompras.sort((a, b) {
+            final dateA =
+                a.dataHoraFim ??
+                a.dataHoraInicio; // Prefere dataFim para ordenação
+            final dateB =
+                b.dataHoraFim ??
+                b.dataHoraInicio; // Prefere dataFim para ordenação
+            return dateB.compareTo(dateA); // Do mais recente para o mais antigo
+          });
+
+          return filteredCompras;
+        })
+        .startWith(
+          _comprasBox.values.where((compra) {
+            bool matchesStatus =
+                statusId == null || compra.compraStatusId == statusId;
+
+            final DateTime? dateToFilterBy =
+                compra.dataHoraFim ?? compra.dataHoraInicio;
+
+            bool matchesDate = true;
+            if (startDate != null && dateToFilterBy != null) {
+              matchesDate =
+                  matchesDate &&
+                  (dateToFilterBy.isAfter(
+                        startDate.subtract(const Duration(days: 1)),
+                      ) ||
+                      dateToFilterBy.isAtSameMomentAs(startDate));
+            }
+            if (endDate != null && dateToFilterBy != null) {
+              matchesDate =
+                  matchesDate &&
+                  (dateToFilterBy.isBefore(
+                        endDate.add(const Duration(days: 1)),
+                      ) ||
+                      dateToFilterBy.isAtSameMomentAs(endDate));
+            }
+
+            bool matchesMinTotal =
+                minTotal == null || compra.valorTotalCalculado >= minTotal;
+            bool matchesMaxTotal =
+                maxTotal == null || compra.valorTotalCalculado <= maxTotal;
+
+            return matchesStatus &&
+                matchesDate &&
+                matchesMinTotal &&
+                matchesMaxTotal;
+          }).toList()..sort((a, b) {
+            // Ordenação para o startWith também
+            final dateA = a.dataHoraFim ?? a.dataHoraInicio;
+            final dateB = b.dataHoraFim ?? b.dataHoraInicio;
+            return dateB.compareTo(dateA);
+          }),
+        );
   }
 }

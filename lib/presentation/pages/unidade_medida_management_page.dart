@@ -72,7 +72,7 @@ class _UnidadeMedidaManagementPageState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gerenciar Unidades de Medida'),
+        title: const Text('Unidades de Medida'),
         centerTitle: true,
         backgroundColor: Colors.blue.shade100,
       ),

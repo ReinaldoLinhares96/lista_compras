@@ -1,40 +1,52 @@
-// ignore_for_file: unused_import
+import 'package:hive/hive.dart'; // Importe o Hive
+import 'package:uuid/uuid.dart';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart'; // Para gerar IDs
+part 'produto_model.g.dart'; // Esta linha será gerada pelo hive_generator
 
-class ProdutoModel {
+@HiveType(typeId: 0) // typeId deve ser único para cada modelo
+class ProdutoModel extends HiveObject {
+  // Estenda HiveObject
+  @HiveField(0) // Campo do Hive
   final String id;
+  @HiveField(1)
   final String nome;
-  final double quantidadeIdealMes;
-  final String unidadeMedidaId; // Referencia o ID da UnidadeMedidaModel
-  final String categoriaId; // Referencia o ID da CategoriaModel
-  final double quantidadeEmEstoque;
-  final bool isActive;
-  final bool isRemoved;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  @HiveField(2)
+  double quantidadeIdealMes; // CORREÇÃO AQUI: REMOVIDO 'final'
+  @HiveField(3)
+  final String unidadeMedidaId;
+  @HiveField(4)
+  final String categoriaId;
+  @HiveField(5)
+  double quantidadeEmEstoque; // Não é final, pode ser alterado
+  @HiveField(6)
+  bool isActive; // Não é final
+  @HiveField(7)
+  bool isRemoved; // Não é final
+  @HiveField(8)
+  DateTime createdAt; // Não é final
+  @HiveField(9)
+  DateTime updatedAt; // Não é final
 
   ProdutoModel({
-    String? id, // Opcional no construtor para novos produtos
+    String? id,
     required this.nome,
-    required this.quantidadeIdealMes,
+    required this.quantidadeIdealMes, // Este ainda é um parâmetro required no construtor
     required this.unidadeMedidaId,
     required this.categoriaId,
-    this.quantidadeEmEstoque = 0.0, // Valor padrão
+    this.quantidadeEmEstoque = 0.0,
     this.isActive = true,
     this.isRemoved = false,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : id = id ?? const Uuid().v4(), // Gera um UUID se nenhum ID for fornecido
+  }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
-  // Cria uma cópia do ProdutoModel com novos valores (útil para atualizações)
   ProdutoModel copyWith({
     String? id,
     String? nome,
-    double? quantidadeIdealMes,
+    double?
+    quantidadeIdealMes, // Ainda pode ser usado no copyWith para criar uma nova instância
     String? unidadeMedidaId,
     String? categoriaId,
     double? quantidadeEmEstoque,
@@ -57,36 +69,5 @@ class ProdutoModel {
     );
   }
 
-  // Converte um DocumentSnapshot do Firestore para um objeto ProdutoModel
-  factory ProdutoModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return ProdutoModel(
-      id: doc.id,
-      nome: data['nome'] as String,
-      quantidadeIdealMes: (data['quantidadeIdealMes'] as num).toDouble(),
-      unidadeMedidaId: data['unidadeMedidaId'] as String,
-      categoriaId: data['categoriaId'] as String,
-      quantidadeEmEstoque: (data['quantidadeEmEstoque'] as num? ?? 0.0)
-          .toDouble(), // Null-safe
-      isActive: data['isActive'] as bool? ?? true,
-      isRemoved: data['isRemoved'] as bool? ?? false,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-    );
-  }
-
-  // Converte um objeto ProdutoModel para um Map para ser salvo no Firestore
-  Map<String, dynamic> toFirestore() {
-    return {
-      'nome': nome,
-      'quantidadeIdealMes': quantidadeIdealMes,
-      'unidadeMedidaId': unidadeMedidaId,
-      'categoriaId': categoriaId,
-      'quantidadeEmEstoque': quantidadeEmEstoque,
-      'isActive': isActive,
-      'isRemoved': isRemoved,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
-    };
-  }
+  // Métodos fromFirestore/toFirestore não são mais necessários para Hive
 }
