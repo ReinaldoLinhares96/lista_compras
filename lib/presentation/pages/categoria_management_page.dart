@@ -71,7 +71,7 @@ class _CategoriaManagementPageState extends State<CategoriaManagementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gerenciar Categorias'),
+        title: const Text('Categorias'),
         centerTitle: true,
         backgroundColor: Colors.blue.shade100,
       ),

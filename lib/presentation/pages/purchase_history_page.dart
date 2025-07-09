@@ -1,4 +1,4 @@
-// ignore_for_file: no_leading_underscores_for_local_identifiers, unused_import, unused_field, prefer_final_fields
+// ignore_for_file: no_leading_underscores_for_local_identifiers, unused_import, unused_field, prefer_final_fields, unnecessary_brace_in_string_interps
 
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
@@ -10,11 +10,10 @@ import 'package:lista_compras/data/repositories/item_compra_repository.dart';
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
 import 'package:lista_compras/data/repositories/unidade_medida_repository.dart';
-import 'package:lista_compras/data/repositories/produto_repository.dart';
-import 'package:lista_compras/presentation/pages/active_shopping_page.dart';
+import 'package:lista_compras/data/repositories/produto_repository.dart'; // Removido, se não usado
 
-import 'package:lista_compras/presentation/widgets/purchase_history_filter_modal.dart'; // Importe o modal de filtro
-import 'package:intl/intl.dart'; // Para formatação de data no histórico
+import 'package:lista_compras/presentation/widgets/purchase_history_filter_modal.dart';
+import 'package:intl/intl.dart';
 
 class PurchaseHistoryPage extends StatefulWidget {
   const PurchaseHistoryPage({super.key});
@@ -38,8 +37,7 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   Map<String, String> _unidadesSimbolo = {};
   List<ProdutoModel> _allProdutos = [];
 
-  PurchaseFilterData _currentFilters =
-      PurchaseFilterData(); // Estado atual dos filtros
+  PurchaseFilterData _currentFilters = PurchaseFilterData();
 
   @override
   void initState() {
@@ -71,22 +69,17 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   }
 
   String _formatDate(DateTime date) {
-    return DateFormat(
-      'dd \'de\' MMMM \'de\' yyyy',
-      'pt_BR',
-    ).format(date); // Usando intl para português
+    return DateFormat('dd \'de\' MMMM \'de\' yyyy', 'pt_BR').format(date);
   }
 
-  // Método para exibir o modal de detalhes da compra
   void _showPurchaseDetailsModal(CompraModel compra) {
-    String _itemSearchText = ''; // Texto de busca para itens do modal
+    String _itemSearchText = '';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
-          // Usar StatefulBuilder para gerenciar o estado do filtro de item
           builder: (BuildContext context, StateSetter modalSetState) {
             return Container(
               height: MediaQuery.of(context).size.height * 0.8,
@@ -119,7 +112,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                     'Total: R\$ ${compra.valorTotalCalculado.toStringAsFixed(2).replaceAll('.', ',')}',
                   ),
                   const Divider(),
-                  // Campo de busca para produtos dentro do modal
                   TextField(
                     decoration: InputDecoration(
                       hintText: 'Buscar produto na lista...',
@@ -137,7 +129,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                     ),
                     onChanged: (text) {
                       modalSetState(() {
-                        // Usa modalSetState para atualizar o modal
                         _itemSearchText = text;
                       });
                     },
@@ -145,9 +136,9 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                   const SizedBox(height: 10),
                   Expanded(
                     child: FutureBuilder<List<ItemCompraModel>>(
+                      // ATUALIZADO: Usar o novo método para itens da compra HISTÓRICA
                       future: _itemCompraRepository
-                          .getItensCompra(compra.id)
-                          .first, // Obter os itens uma vez
+                          .getItensFromHistoricalCompra(compra.id),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -172,7 +163,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
 
                         List<ItemCompraModel> items = snapshot.data!;
 
-                        // Aplicar filtro de busca por nome de produto
                         if (_itemSearchText.isNotEmpty) {
                           items = items
                               .where(
@@ -191,13 +181,11 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                           );
                         }
 
-                        // Agrupar itens por categoria (mantido, mas agora com produtos filtrados)
                         Map<String, List<ItemCompraModel>> itemsPorCategoria =
                             {};
                         for (var item in items) {
                           String categoriaDesc = 'Itens Avulsos';
                           if (item.produtoId != null) {
-                            // CORREÇÃO AQUI: Chamar firstWhereOrNull em _allProdutos
                             final ProdutoModel? prodOriginal = _allProdutos
                                 .firstWhereOrNull(
                                   (p) => p.id == item.produtoId,
@@ -217,7 +205,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                           ..sort();
 
                         if (items.isEmpty) {
-                          // Se não houver itens após o filtro
                           return const Center(
                             child: Text(
                               'Nenhum item encontrado para esta compra.',
@@ -255,7 +242,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                                     final item = itemsDaCategoria[itemIndex];
                                     String simboloUnidade = '';
                                     if (item.produtoId != null) {
-                                      // CORREÇÃO AQUI: Chamar firstWhereOrNull em _allProdutos
                                       final ProdutoModel? prodOriginal =
                                           _allProdutos.firstWhereOrNull(
                                             (p) => p.id == item.produtoId,
@@ -300,7 +286,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
     );
   }
 
-  // Método para abrir o modal de filtro
   void _openFilterModal() async {
     final result = await showModalBottomSheet<PurchaseFilterData?>(
       context: context,
@@ -314,14 +299,14 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
       setState(() {
         _currentFilters = result;
       });
-    } else if (result == null && _currentFilters.statusId != null ||
-        _currentFilters.startDate != null ||
-        _currentFilters.endDate != null ||
-        _currentFilters.minTotal != null ||
-        _currentFilters.maxTotal != null) {
-      // Se o usuário clicou em "Limpar Filtros" no modal
+    } else if (result == null &&
+        (_currentFilters.statusId != null ||
+            _currentFilters.startDate != null ||
+            _currentFilters.endDate != null ||
+            _currentFilters.minTotal != null ||
+            _currentFilters.maxTotal != null)) {
       setState(() {
-        _currentFilters = PurchaseFilterData(); // Reseta para filtros vazios
+        _currentFilters = PurchaseFilterData();
       });
     }
   }
@@ -386,14 +371,11 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                 child: ListTile(
                   title: Text('Compra em $displayDate'),
                   subtitle: Text.rich(
-                    // Use Text.rich aqui
                     TextSpan(
-                      text:
-                          'Status: ', // Esta parte terá a cor padrão (ou herdada)
+                      text: 'Status: ',
                       children: [
                         TextSpan(
-                          text:
-                              statusDesc, // Apenas esta parte terá a cor dinâmica
+                          text: statusDesc,
                           style: TextStyle(
                             color: statusDesc == 'Finalizada'
                                 ? Colors.lightGreen
@@ -401,8 +383,7 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                                 ? Colors.red
                                 : statusDesc == 'Ativa'
                                 ? Colors.blue
-                                : Colors
-                                      .black, // Exemplo: cor padrão se não for nenhum dos anteriores// Opcional: para destacar o status
+                                : Colors.black,
                           ),
                         ),
                       ],
@@ -422,5 +403,15 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
         },
       ),
     );
+  }
+}
+
+// Extensão para firstWhereOrNull em iterables
+extension IterableExtension<T> on Iterable<T> {
+  T? firstWhereOrNull(bool Function(T element) test) {
+    for (var element in this) {
+      if (test(element)) return element;
+    }
+    return null;
   }
 }

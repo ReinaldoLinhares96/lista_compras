@@ -1,32 +1,42 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart'; // Para gerar IDs únicos
+import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 
-class UnidadeMedidaModel {
+part 'unidade_medida_model.g.dart';
+
+@HiveType(typeId: 1)
+class UnidadeMedidaModel extends HiveObject {
+  @HiveField(0)
   final String id;
-  final String descricao;
-  final String simbolo; // NOVO CAMPO
+  @HiveField(1)
+  String descricao;
+  @HiveField(2)
+  String simbolo;
+  @HiveField(3) // NOVO CAMPO
+  bool isActive;
+  @HiveField(4) // NOVO CAMPO
+  bool isRemoved;
 
   UnidadeMedidaModel({
     String? id,
     required this.descricao,
     required this.simbolo,
+    this.isActive = true, // NOVO PARÂMETRO
+    this.isRemoved = false, // NOVO PARÂMETRO
   }) : id = id ?? const Uuid().v4();
 
-  // Converte um DocumentSnapshot do Firestore para um objeto UnidadeMedidaModel
-  factory UnidadeMedidaModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  UnidadeMedidaModel copyWith({
+    String? id,
+    String? descricao,
+    String? simbolo,
+    bool? isActive, // NOVO PARÂMETRO
+    bool? isRemoved, // NOVO PARÂMETRO
+  }) {
     return UnidadeMedidaModel(
-      id: doc.id,
-      descricao: data['descricao'] as String,
-      simbolo: data['simbolo'] as String,
+      id: id ?? this.id,
+      descricao: descricao ?? this.descricao,
+      simbolo: simbolo ?? this.simbolo,
+      isActive: isActive ?? this.isActive, // NOVO NO COPYWITH
+      isRemoved: isRemoved ?? this.isRemoved, // NOVO NO COPYWITH
     );
-  }
-
-  // Converte um objeto UnidadeMedidaModel para um Map para ser salvo no Firestore
-  Map<String, dynamic> toFirestore() {
-    return {
-      'descricao': descricao,
-      'simbolo': simbolo, // SALVAR O NOVO CAMPO
-    };
   }
 }

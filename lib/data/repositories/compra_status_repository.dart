@@ -1,23 +1,25 @@
-// ignore_for_file: unnecessary_brace_in_string_interps
+// ignore_for_file: depend_on_referenced_packages, avoid_print, unnecessary_brace_in_string_interps
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/compra_status_model.dart';
-import '../../core/constants/firestore_collections.dart';
 import '../../core/enums/compra_status_type.dart';
+import 'package:rxdart/rxdart.dart';
 
 class CompraStatusRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late Box<CompraStatusModel> _compraStatusBox;
 
-  // Adiciona os status de compra padrão se não existirem
+  CompraStatusRepository() {
+    _compraStatusBox = Hive.box<CompraStatusModel>('compraStatusBox');
+  }
+
   Future<void> initializeDefaultCompraStatus() async {
-    final CollectionReference collection = _firestore.collection(FirestoreCollections.comprasStatus);
-
     for (var type in CompraStatusType.values) {
-      final docId = type.value.toString(); // Usar o valor do enum como ID do documento
-      final doc = await collection.doc(docId).get();
+      final String docId = type.value.toString();
 
-      if (!doc.exists) {
+      final existingStatus = _compraStatusBox.get(docId);
+
+      if (existingStatus == null) {
         String description;
         switch (type) {
           case CompraStatusType.ativa:
@@ -32,24 +34,59 @@ class CompraStatusRepository {
         }
         final newStatus = CompraStatusModel(
           id: docId,
-          compraStatusType: type,
           descricao: description,
+          isActive: true, // NOVO: Definir como ativo por padrão
+          isRemoved: false, // NOVO: Definir como não removido por padrão
         );
-        await collection.doc(docId).set(newStatus.toFirestore());
+        await _compraStatusBox.put(docId, newStatus);
         if (kDebugMode) {
-          print('Status de Compra padrão "${description}" adicionado.');
+          print('Status de Compra padrão "${description}" adicionado ao Hive.');
         }
       }
     }
   }
 
-  // Obtém todos os status de compra
   Stream<List<CompraStatusModel>> getCompraStatus() {
-    return _firestore
-        .collection(FirestoreCollections.comprasStatus)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CompraStatusModel.fromFirestore(doc))
-            .toList());
+    // Filtrar apenas status ativos (se houver a necessidade de desativar um status)
+    return _compraStatusBox
+        .watch()
+        .map(
+          (event) => _compraStatusBox.values
+              .where((s) => s.isActive && !s.isRemoved)
+              .toList(),
+        ) // FILTRO AQUI
+        .startWith(
+          _compraStatusBox.values
+              .where((s) => s.isActive && !s.isRemoved)
+              .toList(),
+        ); // Emissão inicial
+  }
+
+  CompraStatusModel? getStatusById(String id) {
+    return _compraStatusBox.get(
+      id,
+    ); // Não precisa filtrar por isActive aqui, pois o ID é único
+  }
+
+  // Adicionar métodos update e delete para CompraStatusModel se precisar gerenciar no futuro
+  Future<void> updateCompraStatus(CompraStatusModel status) async {
+    final existingStatus = _compraStatusBox.get(status.id);
+    if (existingStatus != null) {
+      existingStatus.descricao = status.descricao;
+      existingStatus.isActive = status.isActive;
+      existingStatus.isRemoved = status.isRemoved;
+      await existingStatus.save();
+    } else {
+      await _compraStatusBox.put(status.id, status);
+    }
+  }
+
+  Future<void> deleteCompraStatus(String id) async {
+    final status = _compraStatusBox.get(id);
+    if (status != null) {
+      status.isActive = false;
+      status.isRemoved = true;
+      await status.save();
+    }
   }
 }

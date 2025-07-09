@@ -3,7 +3,6 @@
 // ignore_for_file: unused_import, use_build_context_synchronously, duplicate_ignore
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/item_compra_model.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/repositories/item_compra_repository.dart';

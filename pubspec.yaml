@@ -31,35 +31,32 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # Adicione o Firebase Core para inicialização do Firebase
-  firebase_core: ^2.27.0 # Verifique a versão mais recente em pub.dev
-  
-  # Adicione o Cloud Firestore para o banco de dados NoSQL
-  cloud_firestore: ^4.15.8 # Verifique a versão mais recente em pub.dev
+  # Remova Firebase Core e Cloud Firestore AQUI
+  # firebase_core: ^X.Y.Z
+  # cloud_firestore: ^X.Y.Z
+  # firebase_auth: ^X.Y.Z (se não for usar autenticação nativa do Firebase)
 
-  # Adicione o Firebase Auth se planeja ter autenticação no futuro (mesmo sem login no MVP, é bom ter)
-  firebase_auth: ^4.17.8 # Verifique a versão mais recente em pub.dev
-  
-  # Dependência para gerar UUIDs (útil para IDs de documentos)
+  # Adicione Hive
+  hive: ^2.2.3 # Verifique a versão mais recente em pub.dev
+  hive_flutter: ^1.1.0 # Para usar Hive com Flutter (útil para inicialização)
+
+  # Adicione as que já tinha
   uuid: ^4.3.3 # Verifique a versão mais recente em pub.dev
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  intl: ^0.20.2
+  intl: ^0.20.2 # Ou intl: 0.20.2
   flutter_localizations:
     sdk: flutter
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^5.0.0
-
+  # Adicione ou certifique-se de que esta linha está presente
+  flutter_lints: ^6.0.0 # Ou uma versão mais recente compatível, por exemplo ^4.0.0, ^5.0.0, ^6.0.0
+  
+  # Suas outras dev_dependencies
+  mocktail: ^1.0.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.9
+  rxdart: ^0.28.0 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

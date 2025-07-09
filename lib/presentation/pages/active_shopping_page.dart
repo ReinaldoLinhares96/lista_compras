@@ -1,9 +1,9 @@
 // active_shopping_page.dart
 
-// ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore, avoid_print, unnecessary_brace_in_string_interps, await_only_futures
+// ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore, avoid_print, unnecessary_brace_in_string_interps, await_only_futures, unused_local_variable
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Remova o import do Firebase, se estiver aqui (ex: import 'package:cloud_firestore/cloud_firestore.dart';)
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/presentation/widgets/add_frequent_product_to_cart_modal.dart';
 import '../../data/models/compra_model.dart';
@@ -89,7 +89,11 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         _compraAtiva = compra;
       });
       if (compra != null) {
-        _itemCompraRepository.getItensCompra(compra.id).listen((itens) {
+        // getItensCompra retorna Future<List<ItemCompraModel>>, não Stream<List<ItemCompraModel>>
+        // Então, precisamos lidar com isso como um Future no listener
+        _itemCompraRepository.getItensFromActiveCompra(compra.id).listen((
+          itens,
+        ) {
           setState(() {
             _itensNoCarrinho = itens;
           });
@@ -205,8 +209,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   }
 
   Future<void> _finalizarCompra() async {
-    // Manter esta validação inicial.
-    // Se _itensNoCarrinho está vazio, _compraAtiva provavelmente também é nulo ou não deveria ser finalizada.
     if (_compraAtiva == null || _itensNoCarrinho.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -237,38 +239,32 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     );
 
     if (confirm == true) {
-      // **CORREÇÃO DEFINITIVA:** CAPTURAR TODOS OS DADOS NECESSÁRIOS *ANTES* DA OPERAÇÃO DO FIREBASE
-
-      // Cópia do ID e valor total da compra ativa atual (não será afetado pelo stream)
       final String idDaCompraFinalizada = _compraAtiva!.id;
       final double valorTotalParaFinalizar = _compraAtiva!.valorTotalCalculado;
-
-      // Cópia da lista de itens do carrinho no momento da finalização
       final List<ItemCompraModel> itensDaCompraParaProcessar = List.from(
         _itensNoCarrinho,
       );
 
       try {
-        developer.log(
+        print(
           'DEBUG: Entrou no Try para finalizar compra. Compra ID capturado: $idDaCompraFinalizada',
         );
 
-        // 1. FINALIZAR A COMPRA NO BD (isso fará _compraAtiva se tornar null via stream)
+        // Primeiro, finalize a compra no repositório. Isso deve atualizar o status e dataFim.
         await _compraRepository.finalizarCompra(
-          idDaCompraFinalizada, // Usa o ID capturado
-          valorTotalParaFinalizar, // Usa o valor capturado
+          idDaCompraFinalizada,
+          valorTotalParaFinalizar,
         );
-        developer.log(
+        print(
           'DEBUG: Compra finalizada no BD. ID: $idDaCompraFinalizada. _compraAtiva AGORA É NULL VIA STREAM.',
         );
 
-        // 2. PROCESSAR ITENS E ATUALIZAR ESTOQUE USANDO OS DADOS CAPTURADOS
-        developer.log(
+        print(
           'DEBUG: Processando ${itensDaCompraParaProcessar.length} itens para atualizar estoque.',
         );
 
         if (itensDaCompraParaProcessar.isEmpty) {
-          developer.log(
+          print(
             'DEBUG: Nao ha itens na lista capturada para atualizar o estoque.',
           );
           if (mounted) {
@@ -280,22 +276,21 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ),
             );
           }
-          // Não há mais itens para processar, então podemos sair
+          // Garante que a UI se atualize mesmo se não houver itens para processar
+          setState(() {
+            _compraAtiva = null; // Force o estado de compra ativa para nulo
+          });
           if (mounted) {
-            // Garante que o contexto ainda é válido antes de mostrar SnackBar final
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Compra finalizada com sucesso!')),
             );
           }
-          developer.log(
-            'DEBUG: Fim da finalizacao da compra, sem erros aparentes.',
-          );
-          return; // Retorna aqui se não houver itens para evitar o loop
+          print('DEBUG: Fim da finalizacao da compra, sem erros aparentes.');
+          return;
         }
 
         for (var item in itensDaCompraParaProcessar) {
-          // ITERAR SOBRE A CÓPIA DA LISTA
-          developer.log(
+          print(
             'DEBUG: Entrou no for, Item: ${item.nomeProduto}, Qtd comprada: ${item.quantidadeComprada}',
           );
 
@@ -304,27 +299,24 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                 .firstWhereOrNull((p) => p.id == item.produtoId);
 
             if (produtoOriginal == null) {
-              developer.log(
+              print(
                 'DEBUG: PRODUTO ORIGINAL NAO ENCONTRADO PARA ITEM ${item.nomeProduto}. Pulando atualizacao de estoque.',
               );
               continue;
             }
 
-            // Promoção de tipo: 'produtoOriginal' é garantido como não-nulo aqui
             final updatedEstoque =
                 produtoOriginal.quantidadeEmEstoque + item.quantidadeComprada;
 
-            developer.log(
+            print(
               'DEBUG: updatedEstoque: ${updatedEstoque.toStringAsFixed(1)}',
             );
-            developer.log(
+            print(
               'DEBUG: quantidadeIdealMes: ${produtoOriginal.quantidadeIdealMes.toStringAsFixed(1)}',
             );
 
-            ProdutoModel produtoParaAtualizar = produtoOriginal.copyWith(
-              quantidadeEmEstoque: updatedEstoque,
-              updatedAt: DateTime.now(),
-            );
+            produtoOriginal.quantidadeEmEstoque = updatedEstoque;
+            produtoOriginal.updatedAt = DateTime.now();
 
             if (updatedEstoque > produtoOriginal.quantidadeIdealMes) {
               final bool? updateIdeal = await showDialog(
@@ -351,44 +343,41 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                 ),
               );
               if (updateIdeal == true) {
-                produtoParaAtualizar = produtoParaAtualizar.copyWith(
-                  quantidadeIdealMes: updatedEstoque,
-                );
-                developer.log(
-                  'DEBUG: Usuario escolheu atualizar ideal tambem.',
-                );
+                produtoOriginal.quantidadeIdealMes = updatedEstoque;
+                print('DEBUG: Usuario escolheu atualizar ideal tambem.');
               } else {
-                developer.log('DEBUG: Usuario escolheu NAO atualizar ideal.');
+                print('DEBUG: Usuario escolheu NAO atualizar ideal.');
               }
             }
-
-            developer.log(
-              'DEBUG: Chamando updateProduto para ${produtoOriginal.nome} com estoque ${produtoParaAtualizar.quantidadeEmEstoque}',
-            );
-            await _produtoRepository.updateProduto(produtoParaAtualizar);
-            developer.log(
-              'DEBUG: updateProduto chamado para ${produtoOriginal.nome}.',
-            );
+            await produtoOriginal.save();
+            print('DEBUG: updateProduto chamado para ${produtoOriginal.nome}.');
           } else {
-            developer.log(
+            print(
               'DEBUG: Item ${item.nomeProduto} eh avulso, estoque nao sera atualizado.',
             );
           }
         }
 
-        // SnackBar final de sucesso, movida para cá para garantir que sempre apareça após tudo
+        // ATUALIZADO: Remover itens logicamente um por um
+        for (var item in itensDaCompraParaProcessar) {
+          await _itemCompraRepository.markItemAsRemoved(item.id);
+        }
+        print(
+          'DEBUG: Itens do carrinho removidos fisicamente após finalização.',
+        );
+
+        // Forçar atualização da UI após todas as operações do repositório
         if (mounted) {
+          setState(() {
+            _compraAtiva = null; // Garante que o estado seja nulo imediatamente
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra finalizada com sucesso!')),
           );
         }
-        developer.log(
-          'DEBUG: Fim da finalizacao da compra, sem erros aparentes.',
-        );
+        print('DEBUG: Fim da finalizacao da compra, sem erros aparentes.');
       } catch (e, stackTrace) {
-        developer.log(
-          'DEBUG: Erro ao finalizar compra: $e\nStackTrace: $stackTrace',
-        );
+        print('DEBUG: Erro ao finalizar compra: $e\nStackTrace: $stackTrace');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erro ao finalizar compra: $e')),
@@ -400,7 +389,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
 
   // NOVO: Método para cancelar a compra
   Future<void> _cancelarCompra() async {
-    // A compra só pode ser cancelada se estiver ativa e não for nula
     if (_compraAtiva == null ||
         _compraAtiva!.compraStatusId !=
             CompraStatusType.ativa.value.toString()) {
@@ -431,34 +419,40 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     );
 
     if (confirm == true) {
+      final double valorTotalParaFinalizar = _compraAtiva!.valorTotalCalculado;
       try {
-        developer.log(
+        print(
           'DEBUG: Iniciando cancelamento da compra ID: ${_compraAtiva!.id}',
         );
-        // Chama o método de cancelar compra no repositório
-        await _compraRepository.cancelarCompra(_compraAtiva!.id);
-        developer.log('DEBUG: Compra cancelada no BD.');
 
-        // Opcional: Você pode querer remover os itens do carrinho também aqui
-        // Embora o status da compra mude, os itens ainda ficam associados a ela.
-        // Se a regra de negócio for limpar o carrinho ao cancelar:
+        // ATUALIZADO: Remover itens logicamente um por um
         final List<ItemCompraModel> itensParaRemover = List.from(
           _itensNoCarrinho,
         );
         for (var item in itensParaRemover) {
-          await _itemCompraRepository.removeItemCompra(item.id);
+          await _itemCompraRepository.markItemAsRemoved(item.id);
         }
-        developer.log('DEBUG: Itens do carrinho removidos após cancelamento.');
+        print(
+          'DEBUG: Itens do carrinho removidos fisicamente após cancelamento.',
+        );
+
+        // Chamar o método de cancelar compra no repositório (apenas um parâmetro)
+        await _compraRepository.cancelarCompra(
+          _compraAtiva!.id,
+          valorTotalParaFinalizar,
+        ); // Removido o segundo parâmetro
+        print('DEBUG: Compra cancelada no BD.');
 
         if (mounted) {
+          setState(() {
+            _compraAtiva = null; // Garante que o estado seja nulo imediatamente
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra cancelada com sucesso!')),
           );
         }
       } catch (e, stackTrace) {
-        developer.log(
-          'DEBUG: Erro ao cancelar compra: $e\nStackTrace: $stackTrace',
-        );
+        print('DEBUG: Erro ao cancelar compra: $e\nStackTrace: $stackTrace');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erro ao cancelar compra: $e')),
@@ -529,10 +523,10 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                 Icons.cancel_outlined,
                 color: Colors.orange,
               ), // Ícone de cancelar
-              onPressed: _cancelarCompra,
+              onPressed: _cancelarCompra, // Chamada para _cancelarCompra
               tooltip: 'Cancelar Compra',
             )
-          else // Botão desabilitado se não houver compra ativa
+          else
             IconButton(
               icon: Icon(Icons.cancel_outlined, color: Colors.grey[400]),
               onPressed: null,
@@ -566,6 +560,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12.0),
             ),
+
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -589,7 +584,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ),
             ),
           ),
-
           _compraAtiva == null ||
                   _compraAtiva!.compraStatusId !=
                       CompraStatusType.ativa.value.toString()
@@ -633,7 +627,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         expandedHeaderPadding: EdgeInsets.zero,
                         animationDuration: const Duration(milliseconds: 400),
                         expansionCallback: (panelIndex, isExpanded) {
-                          // CORREÇÃO: Atribuir diretamente o isExpanded
                           setState(() {
                             _panelPrecisaComprarExpanded = isExpanded;
                           });
@@ -743,7 +736,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         expandedHeaderPadding: EdgeInsets.zero,
                         animationDuration: const Duration(milliseconds: 400),
                         expansionCallback: (panelIndex, isExpanded) {
-                          // CORREÇÃO: Atribuir diretamente o isExpanded
                           setState(() {
                             _panelNoCarrinhoExpanded = isExpanded;
                           });

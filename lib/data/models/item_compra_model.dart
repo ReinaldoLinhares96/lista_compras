@@ -1,18 +1,36 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
-class ItemCompraModel {
+part 'item_compra_model.g.dart';
+
+@HiveType(typeId: 4)
+class ItemCompraModel extends HiveObject {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final String compraId;
-  final String? produtoId; // Nulo se for item avulso
-  final String nomeProduto;
-  final double quantidadeComprada;
-  final double precoUnitario;
-  final double subtotal; // Este será o resultado do cálculo
-  final bool ehAvulso;
-  final bool adicionadoNaLista; // Nome correto da propriedade
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  @HiveField(2)
+  final String? produtoId;
+  @HiveField(3)
+  String nomeProduto;
+  @HiveField(4)
+  double quantidadeComprada;
+  @HiveField(5)
+  double precoUnitario;
+  @HiveField(6)
+  double subtotal;
+  @HiveField(7)
+  bool ehAvulso;
+  @HiveField(8)
+  bool adicionadoNaLista; // Nome correto da propriedade
+  @HiveField(9)
+  DateTime createdAt;
+  @HiveField(10)
+  DateTime updatedAt;
+  @HiveField(11)
+  bool isActive;
+  @HiveField(12)
+  bool isRemoved;
 
   ItemCompraModel({
     String? id,
@@ -22,12 +40,19 @@ class ItemCompraModel {
     required this.quantidadeComprada,
     required this.precoUnitario,
     double? subtotal,
-    this.ehAvulso = false,
-    this.adicionadoNaLista = false, // Nome correto da propriedade no construtor
+    bool? ehAvulso,
+    bool? adicionadoNaLista, // Nome correto no parâmetro do construtor
+    bool? isActive,
+    bool? isRemoved,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : id = id ?? const Uuid().v4(),
        subtotal = subtotal ?? (quantidadeComprada * precoUnitario),
+       ehAvulso = ehAvulso ?? false,
+       adicionadoNaLista =
+           adicionadoNaLista ?? false, // Usando o nome correto aqui
+       isActive = isActive ?? true,
+       isRemoved = isRemoved ?? false,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
@@ -40,7 +65,9 @@ class ItemCompraModel {
     double? precoUnitario,
     double? subtotal,
     bool? ehAvulso,
-    bool? adicionadoNaLista, // Nome correto da propriedade no copyWith
+    bool? adicionadoNaLista, // Nome correto no parâmetro do copyWith
+    bool? isActive,
+    bool? isRemoved,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -58,41 +85,11 @@ class ItemCompraModel {
       subtotal: subtotal ?? calculatedSubtotal,
       ehAvulso: ehAvulso ?? this.ehAvulso,
       adicionadoNaLista:
-          adicionadoNaLista ?? this.adicionadoNaLista, // CORRIGIDO AQUI!
+          adicionadoNaLista ?? this.adicionadoNaLista, // CORRIGIDO AQUI
+      isActive: isActive ?? this.isActive,
+      isRemoved: isRemoved ?? this.isRemoved,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
-  }
-
-  factory ItemCompraModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return ItemCompraModel(
-      id: doc.id,
-      compraId: data['compraId'] as String,
-      produtoId: data['produtoId'] as String?,
-      nomeProduto: data['nomeProduto'] as String,
-      quantidadeComprada: (data['quantidadeComprada'] as num).toDouble(),
-      precoUnitario: (data['precoUnitario'] as num).toDouble(),
-      subtotal: (data['subtotal'] as num? ?? 0.0).toDouble(),
-      ehAvulso: data['ehAvulso'] as bool? ?? false,
-      adicionadoNaLista: data['adicionadoNaLista'] as bool? ?? false,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-    );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'compraId': compraId,
-      'produtoId': produtoId,
-      'nomeProduto': nomeProduto,
-      'quantidadeComprada': quantidadeComprada,
-      'precoUnitario': precoUnitario,
-      'subtotal': subtotal,
-      'ehAvulso': ehAvulso,
-      'adicionadoNaLista': adicionadoNaLista,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
-    };
   }
 }

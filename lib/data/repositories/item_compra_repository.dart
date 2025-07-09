@@ -1,38 +1,110 @@
-// ignore_for_file: unused_field
+// ignore_for_file: depend_on_referenced_packages
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/item_compra_model.dart';
-import '../../core/constants/firestore_collections.dart';
+import 'package:rxdart/rxdart.dart';
 
 class ItemCompraRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CollectionReference _itensCompraCollection = FirebaseFirestore.instance
-      .collection(FirestoreCollections.itensCompra);
+  late Box<ItemCompraModel> _itensCompraBox;
 
-  // Adiciona um item a uma compra específica
-  Future<void> addItemCompra(ItemCompraModel item) async {
-    await _itensCompraCollection.doc(item.id).set(item.toFirestore());
+  ItemCompraRepository() {
+    _itensCompraBox = Hive.box<ItemCompraModel>('itensCompraBox');
   }
 
-  // Obtém todos os itens de uma compra específica
-  Stream<List<ItemCompraModel>> getItensCompra(String compraId) {
-    return _itensCompraCollection
-        .where('compraId', isEqualTo: compraId)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ItemCompraModel.fromFirestore(doc))
+  Future<void> addItemCompra(ItemCompraModel item) async {
+    await _itensCompraBox.put(item.id, item);
+  }
+
+  // NOVO: Método para obter itens da compra ATIVA (filtrando por ativos e não removidos)
+  Stream<List<ItemCompraModel>> getItensFromActiveCompra(String compraId) {
+    return _itensCompraBox
+        .watch()
+        .map((event) {
+          return _itensCompraBox.values
+              .where(
+                (item) =>
+                    item.compraId == compraId &&
+                    item.isActive &&
+                    !item.isRemoved,
+              )
+              .toList()
+            ..sort((a, b) => a.nomeProduto.compareTo(b.nomeProduto));
+        })
+        .startWith(
+          _itensCompraBox.values
+              .where(
+                (item) =>
+                    item.compraId == compraId &&
+                    item.isActive &&
+                    !item.isRemoved,
+              )
+              .toList()
+            ..sort((a, b) => a.nomeProduto.compareTo(b.nomeProduto)),
+        );
+  }
+
+  // NOVO: Método para obter itens de uma compra HISTÓRICA (incluindo os logicamente removidos)
+  Future<List<ItemCompraModel>> getItensFromHistoricalCompra(
+    String compraId,
+  ) async {
+    // Retorna todos os itens associados a esta compra, independentemente do status isActive/isRemoved
+    final items = _itensCompraBox.values
+        .where((item) => item.compraId == compraId)
+        .toList();
+    items.sort((a, b) => a.nomeProduto.compareTo(b.nomeProduto));
+    return items;
+  }
+
+  // NOVO: Stream para observar mudanças nos itens de uma compra específica
+  // Isso é crucial para a ActiveShoppingPage reagir a adições/remoções
+  Stream<List<ItemCompraModel>> watchItensCompra(String compraId) {
+    return _itensCompraBox
+        .watch()
+        .map((event) {
+          return _itensCompraBox.values
+              .where((item) => item.compraId == compraId)
+              .toList();
+        })
+        .startWith(
+          _itensCompraBox.values
+              .where((item) => item.compraId == compraId)
               .toList(),
         );
   }
 
-  // Remove um item de uma compra (exclusão física)
-  Future<void> removeItemCompra(String itemId) async {
-    await _itensCompraCollection.doc(itemId).delete();
+  Future<void> updateItemCompra(ItemCompraModel item) async {
+    // Usar .put() diretamente, mas garantir que o objeto seja o existente se possível
+    final existingItem = _itensCompraBox.get(item.id);
+    if (existingItem != null) {
+      existingItem.nomeProduto = item.nomeProduto;
+      existingItem.quantidadeComprada = item.quantidadeComprada;
+      existingItem.precoUnitario = item.precoUnitario;
+      existingItem.subtotal =
+          item.subtotal; // Subtotal pode ser recalculado no modelo
+      existingItem.ehAvulso = item.ehAvulso;
+      existingItem.adicionadoNaLista = item.adicionadoNaLista;
+      existingItem.isActive = item.isActive;
+      existingItem.isRemoved = item.isRemoved;
+      existingItem.createdAt = item.createdAt;
+      existingItem.updatedAt = DateTime.now(); // Atualiza data de modificação
+      await existingItem.save();
+    } else {
+      await _itensCompraBox.put(item.id, item);
+    }
   }
 
-  // Atualiza um item de compra (útil para caso o usuário mude qty ou preço de um item já no carrinho)
-  Future<void> updateItemCompra(ItemCompraModel item) async {
-    await _itensCompraCollection.doc(item.id).update(item.toFirestore());
+  // NOVO: Método para marcar um item como logicamente removido
+  Future<void> markItemAsRemoved(String itemId) async {
+    final item = _itensCompraBox.get(itemId);
+    if (item != null) {
+      item.isActive = false;
+      item.isRemoved = true;
+      item.updatedAt = DateTime.now();
+      await item.save();
+    }
+  }
+
+  Future<void> removeItemCompra(String id) async {
+    await _itensCompraBox.delete(id);
   }
 }

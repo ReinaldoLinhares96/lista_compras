@@ -3,7 +3,6 @@
 // ignore_for_file: unused_import, unused_field, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
 import '../../data/models/unidade_medida_model.dart';
