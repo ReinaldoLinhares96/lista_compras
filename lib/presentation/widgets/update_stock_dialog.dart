@@ -24,6 +24,7 @@ class UpdateStockDialog extends StatelessWidget {
       title: Text('Atualizar Estoque de ${product.nome}'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Ideal: ${product.quantidadeIdealMes.toString()}'),
           TextField(

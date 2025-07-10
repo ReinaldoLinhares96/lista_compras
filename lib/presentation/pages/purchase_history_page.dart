@@ -232,12 +232,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                                   itemCount: itemsDaCategoria.length,
                                   itemBuilder: (context, itemIndex) {
                                     final item = itemsDaCategoria[itemIndex];
-                                    // if (item.produtoId != null) {
-                                    //   final ProdutoModel? prodOriginal =
-                                    //       _allProdutos.firstWhereOrNull(
-                                    //         (p) => p.id == item.produtoId,
-                                    //       );
-                                    // }
                                     return Card(
                                       margin: const EdgeInsets.symmetric(
                                         horizontal: 0,
