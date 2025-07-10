@@ -4,7 +4,6 @@ import 'package:lista_compras/data/models/orcamento_model.dart';
 
 // Importe todos os seus modelos para registrar seus adaptadores
 import 'package:lista_compras/data/models/produto_model.dart';
-import 'package:lista_compras/data/models/unidade_medida_model.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
 import 'package:lista_compras/data/models/item_compra_model.dart';
@@ -30,7 +29,6 @@ void main() async {
 
   // Registre todos os adaptadores gerados
   Hive.registerAdapter(ProdutoModelAdapter());
-  Hive.registerAdapter(UnidadeMedidaModelAdapter());
   Hive.registerAdapter(CategoriaModelAdapter());
   Hive.registerAdapter(CompraModelAdapter());
   Hive.registerAdapter(ItemCompraModelAdapter());
@@ -41,7 +39,6 @@ void main() async {
 
   // ABRA AS CAIXAS (BOXES) QUE VOCÊ VAI USAR NO SEU APLICATIVO
   await Hive.openBox<ProdutoModel>('produtosBox');
-  await Hive.openBox<UnidadeMedidaModel>('unidadesMedidaBox');
   await Hive.openBox<CategoriaModel>('categoriasBox');
   await Hive.openBox<CompraModel>('comprasBox');
   await Hive.openBox<ItemCompraModel>('itensCompraBox');

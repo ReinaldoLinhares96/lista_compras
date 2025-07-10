@@ -126,8 +126,27 @@ class CompraRepository {
           List<CompraModel> filteredCompras = _comprasBox.values.where((
             compra,
           ) {
-            bool matchesStatus =
-                statusId == null || compra.compraStatusId == statusId;
+            bool matchesStatus = true;
+            if (statusId != null && statusId.isNotEmpty) {
+              matchesStatus = compra.compraStatusId == statusId;
+            } else {
+              // Se nenhum status específico foi pedido, inclua APENAS Finalizada ou Cancelada.
+              // Você precisará dos IDs de 'Finalizada' e 'Cancelada' aqui.
+              final String? finalizadaStatusId = _compraStatusBox.values
+                  .firstWhereOrNull(
+                    (s) => s.id == CompraStatusType.finalizada.value.toString(),
+                  )
+                  ?.id;
+              final String? canceladaStatusId = _compraStatusBox.values
+                  .firstWhereOrNull(
+                    (s) => s.id == CompraStatusType.cancelada.value.toString(),
+                  )
+                  ?.id;
+
+              matchesStatus =
+                  (compra.compraStatusId == finalizadaStatusId ||
+                  compra.compraStatusId == canceladaStatusId);
+            }
 
             // **CORREÇÃO AQUI:** Usar dataHoraFim para a filtragem de datas, se disponível
             final DateTime? dateToFilterBy =

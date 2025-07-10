@@ -7,22 +7,17 @@ import '../../data/repositories/produto_repository.dart';
 class UpdateStockDialog extends StatelessWidget {
   final ProdutoModel product;
   final ProdutoRepository productRepository; // Recebe o repositório
-  final Map<String, String>
-  unidadesDescricao; // Para exibir a descrição da unidade
-  final Map<String, String> unidadesSimbolo;
 
   const UpdateStockDialog({
     super.key,
     required this.product,
     required this.productRepository,
-    required this.unidadesDescricao,
-    required this.unidadesSimbolo,
   });
 
   @override
   Widget build(BuildContext context) {
     final TextEditingController _stockController = TextEditingController(
-      text: product.quantidadeEmEstoque.toStringAsFixed(1).replaceAll('.', ','),
+      text: product.quantidadeEmEstoque.toString(),
     );
 
     return AlertDialog(
@@ -30,15 +25,13 @@ class UpdateStockDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Ideal p/ Mês: ${product.quantidadeIdealMes.toStringAsFixed(1)} ${unidadesSimbolo[product.unidadeMedidaId] ?? 'N/A'}',
-          ),
+          Text('Ideal: ${product.quantidadeIdealMes.toString()}'),
           TextField(
             controller: _stockController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: false),
             decoration: const InputDecoration(
               labelText: 'Quantidade em Estoque Atual',
-              hintText: 'Ex: 2,5',
+              hintText: 'Ex: 2',
             ),
           ),
         ],
@@ -51,9 +44,7 @@ class UpdateStockDialog extends StatelessWidget {
         ElevatedButton(
           onPressed: () async {
             final String inputText = _stockController.text;
-            final double? novaQuantidade = double.tryParse(
-              inputText.replaceAll(',', '.'),
-            );
+            final int? novaQuantidade = int.tryParse(inputText.toString());
 
             if (novaQuantidade == null || novaQuantidade < 0) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -70,7 +61,7 @@ class UpdateStockDialog extends StatelessWidget {
                 builder: (context) => AlertDialog(
                   title: const Text('Estoque Excedente!'),
                   content: Text(
-                    '${product.nome}: Novo estoque (${novaQuantidade.toStringAsFixed(1)}) excede o ideal mensal (${product.quantidadeIdealMes.toStringAsFixed(1)}). Deseja atualizar a Quantidade Ideal para o novo estoque?',
+                    '${product.nome}: Novo estoque (${novaQuantidade.toString()}) excede o ideal mensal (${product.quantidadeIdealMes.toString()}). Deseja atualizar a Quantidade Ideal para o novo estoque?',
                   ),
                   actions: [
                     TextButton(

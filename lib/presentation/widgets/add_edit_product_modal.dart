@@ -3,8 +3,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
-import '../../data/models/unidade_medida_model.dart';
-import '../../data/repositories/unidade_medida_repository.dart';
 import '../../data/models/categoria_model.dart';
 import '../../data/repositories/categoria_repository.dart';
 
@@ -20,13 +18,10 @@ class AddEditProductModal extends StatefulWidget {
 
 class _AddEditProductModalState extends State<AddEditProductModal> {
   final ProdutoRepository _produtoRepository = ProdutoRepository();
-  final UnidadeMedidaRepository _unidadeMedidaRepository =
-      UnidadeMedidaRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
 
   late TextEditingController _nomeController;
-  late double _quantidadeIdealMes;
-  String? _selectedUnidadeId;
+  late int _quantidadeIdealMes;
   String? _selectedCategoriaId;
   late TextEditingController
   _quantidadeIdealController; // Para o TextFormField ao lado do Slider
@@ -35,11 +30,10 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
   void initState() {
     super.initState();
     _nomeController = TextEditingController(text: widget.product?.nome ?? '');
-    _quantidadeIdealMes = widget.product?.quantidadeIdealMes ?? 1.0;
-    _selectedUnidadeId = widget.product?.unidadeMedidaId;
+    _quantidadeIdealMes = widget.product?.quantidadeIdealMes ?? 1;
     _selectedCategoriaId = widget.product?.categoriaId;
     _quantidadeIdealController = TextEditingController(
-      text: _quantidadeIdealMes.toStringAsFixed(1).replaceAll('.', ','),
+      text: _quantidadeIdealMes.toString(),
     );
 
     // Adiciona o listener para sincronizar TextFormField com Slider
@@ -47,12 +41,10 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
   }
 
   void _updateSliderFromText() {
-    final value = double.tryParse(
-      _quantidadeIdealController.text.replaceAll(',', '.'),
-    );
+    final value = int.tryParse(_quantidadeIdealController.text.toString());
     if (value != null) {
       setState(() {
-        _quantidadeIdealMes = value.clamp(0.1, 100.0);
+        _quantidadeIdealMes = value;
       });
     }
   }
@@ -93,7 +85,7 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
               children: [
                 Expanded(
                   child: Text(
-                    'Quantidade Ideal Mês:',
+                    'Quantidade Ideal:',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
@@ -101,9 +93,7 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
                   width: 80,
                   child: TextField(
                     controller: _quantidadeIdealController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    keyboardType: const TextInputType.numberWithOptions(),
                     textAlign: TextAlign.center,
                     decoration: const InputDecoration(
                       isDense: true,
@@ -117,50 +107,6 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
                 ),
               ],
             ),
-            Slider(
-              value: _quantidadeIdealMes,
-              min: 0.1,
-              max: 100.0,
-              divisions: 999,
-              onChanged: (newValue) {
-                setState(() {
-                  _quantidadeIdealMes = newValue;
-                  _quantidadeIdealController.text = newValue
-                      .toStringAsFixed(1)
-                      .replaceAll('.', ',');
-                });
-              },
-            ),
-            StreamBuilder<List<UnidadeMedidaModel>>(
-              stream: _unidadeMedidaRepository.getUnidadesMedida(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
-                }
-                final unidades = snapshot.data!;
-                // VERIFICAR SE _selectedUnidadeId EXISTE NA LISTA DE UNIDADES
-                final bool isSelectedUnidadeIdValid = unidades.any(
-                  (u) => u.id == _selectedUnidadeId,
-                );
-                return DropdownButtonFormField<String>(
-                  // Se o _selectedUnidadeId não for válido, defina-o como null
-                  value: isSelectedUnidadeIdValid ? _selectedUnidadeId : null,
-                  hint: const Text('Selecione a Unidade de Medida'),
-                  items: unidades.map((unidade) {
-                    return DropdownMenuItem(
-                      value: unidade.id,
-                      child: Text(unidade.descricao),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedUnidadeId = value;
-                    });
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 10),
             StreamBuilder<List<CategoriaModel>>(
               stream: _categoriaRepository.getCategorias(),
               builder: (context, snapshot) {
@@ -177,7 +123,9 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
                   value: isSelectedCategoriaIdValid
                       ? _selectedCategoriaId
                       : null, // CORREÇÃO AQUI
-                  hint: const Text('Selecione a Categoria'),
+                  hint: categorias.isNotEmpty
+                      ? const Text('Selecione a Categoria')
+                      : const Text('Crie uma Categoria'),
                   items: categorias.map((categoria) {
                     return DropdownMenuItem(
                       value: categoria.id,
@@ -196,7 +144,6 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
             ElevatedButton(
               onPressed: () async {
                 if (_nomeController.text.isEmpty ||
-                    _selectedUnidadeId == null ||
                     _selectedCategoriaId == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Preencha todos os campos!')),
@@ -208,10 +155,8 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
                   id: widget.product?.id,
                   nome: _nomeController.text,
                   quantidadeIdealMes: _quantidadeIdealMes,
-                  unidadeMedidaId: _selectedUnidadeId!,
                   categoriaId: _selectedCategoriaId!,
-                  quantidadeEmEstoque:
-                      widget.product?.quantidadeEmEstoque ?? 0.0,
+                  quantidadeEmEstoque: widget.product?.quantidadeEmEstoque ?? 0,
                   isActive: widget.product?.isActive ?? true,
                   isRemoved: widget.product?.isRemoved ?? false,
                   createdAt: widget.product?.createdAt,

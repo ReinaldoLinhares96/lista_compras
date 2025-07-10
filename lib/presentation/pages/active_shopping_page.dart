@@ -13,8 +13,7 @@ import '../../data/models/orcamento_model.dart';
 import '../../data/repositories/compra_repository.dart';
 import '../../data/repositories/item_compra_repository.dart';
 import '../../data/repositories/produto_repository.dart';
-import '../../data/repositories/orcamento_repository.dart';
-import '../../data/repositories/unidade_medida_repository.dart'; // Para descrições
+import '../../data/repositories/orcamento_repository.dart'; // Para descrições
 import '../../data/repositories/categoria_repository.dart'; // Para descrições
 import '../../core/enums/compra_status_type.dart';
 import 'dart:developer' as developer;
@@ -33,8 +32,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   final ItemCompraRepository _itemCompraRepository = ItemCompraRepository();
   final ProdutoRepository _produtoRepository = ProdutoRepository();
   final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
-  final UnidadeMedidaRepository _unidadeMedidaRepository =
-      UnidadeMedidaRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
 
   CompraModel? _compraAtiva;
@@ -42,8 +39,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   List<ProdutoModel> _allProdutosFrequentes = [];
   List<ItemCompraModel> _itensNoCarrinho = [];
 
-  Map<String, String> _unidadesDescricao = {};
-  Map<String, String> _unidadesSimbolo = {};
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
@@ -65,12 +60,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   }
 
   void _listenToAuxiliaryData() {
-    _unidadeMedidaRepository.getUnidadesMedida().listen((unidades) {
-      setState(() {
-        _unidadesDescricao = {for (var u in unidades) u.id: u.descricao};
-        _unidadesSimbolo = {for (var u in unidades) u.id: u.simbolo};
-      });
-    });
     _categoriaRepository.getCategorias().listen((categorias) {
       setState(() {
         _categoriasDescricao = {for (var c in categorias) c.id: c.descricao};
@@ -124,6 +113,24 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
 
   Future<void> _iniciarCompra() async {
     try {
+      // **CORREÇÃO AQUI:** Verificar se já existe uma compra ativa
+      final CompraModel? compraExistente = await _compraRepository
+          .getCompraAtiva()
+          .first; // Obtém o primeiro valor e completa o Future
+
+      if (compraExistente != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Já existe uma compra ativa! Finalize-a ou cancele-a antes de iniciar uma nova.',
+              ),
+            ),
+          );
+        }
+        return; // Impede a criação de uma nova compra
+      }
+
       await _compraRepository.iniciarNovaCompra();
       if (mounted) {
         ScaffoldMessenger.of(
@@ -154,7 +161,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ).showSnackBar(SnackBar(content: Text(message)));
             }
           },
-          unidadesDescricao: _unidadesDescricao,
           compraRepository: _compraRepository,
           itemCompraRepository: _itemCompraRepository,
         );
@@ -469,10 +475,10 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         (_compraAtiva?.valorTotalCalculado ?? 0.0);
     final List<ProdutoModel> produtosPrecisaComprar = _allProdutosFrequentes
         .where((p) {
-          double currentStock = p.quantidadeEmEstoque;
-          double quantityInCart = _itensNoCarrinho
+          int currentStock = p.quantidadeEmEstoque;
+          int quantityInCart = _itensNoCarrinho
               .where((item) => item.produtoId == p.id)
-              .fold(0.0, (sum, item) => sum + item.quantidadeComprada);
+              .fold(0, (sum, item) => sum + item.quantidadeComprada);
 
           return (p.quantidadeIdealMes - currentStock - quantityInCart) > 0;
         })
@@ -674,22 +680,16 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                                     produto.id,
                                               )
                                               .fold(
-                                                0.0,
+                                                0,
                                                 (sum, item) =>
                                                     sum +
                                                     item.quantidadeComprada,
                                               ));
-                                      final unidade =
-                                          _unidadesSimbolo[produto
-                                              .unidadeMedidaId] ??
-                                          'N/A';
 
                                       final displayQuantidade =
                                           quantidadeCalculada > 0
-                                          ? quantidadeCalculada.toStringAsFixed(
-                                              1,
-                                            )
-                                          : '0.0';
+                                          ? quantidadeCalculada.toString()
+                                          : '0';
 
                                       return Card(
                                         margin: const EdgeInsets.symmetric(
@@ -705,7 +705,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                             ),
                                           ),
                                           subtitle: Text(
-                                            'Comprar: $displayQuantidade $unidade',
+                                            'Comprar: $displayQuantidade',
                                             style: const TextStyle(
                                               color: Colors.red,
                                             ),
@@ -818,7 +818,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                                                     ),
                                                   ),
                                                   subtitle: Text(
-                                                    '${item.quantidadeComprada.toStringAsFixed(1)} x R\$ ${item.precoUnitario.toStringAsFixed(2).replaceAll('.', ',')}',
+                                                    '${item.quantidadeComprada.toString()} x R\$ ${item.precoUnitario.toStringAsFixed(2).replaceAll('.', ',')}',
                                                     style: const TextStyle(
                                                       color: Colors.blueGrey,
                                                     ),

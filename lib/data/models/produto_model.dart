@@ -11,29 +11,26 @@ class ProdutoModel extends HiveObject {
   @HiveField(1)
   final String nome;
   @HiveField(2)
-  double quantidadeIdealMes; // CORREÇÃO AQUI: REMOVIDO 'final'
+  int quantidadeIdealMes; // CORREÇÃO AQUI: REMOVIDO 'final'
   @HiveField(3)
-  final String unidadeMedidaId;
-  @HiveField(4)
   final String categoriaId;
+  @HiveField(4)
+  int quantidadeEmEstoque; // Não é final, pode ser alterado
   @HiveField(5)
-  double quantidadeEmEstoque; // Não é final, pode ser alterado
-  @HiveField(6)
   bool isActive; // Não é final
-  @HiveField(7)
+  @HiveField(6)
   bool isRemoved; // Não é final
-  @HiveField(8)
+  @HiveField(7)
   DateTime createdAt; // Não é final
-  @HiveField(9)
+  @HiveField(8)
   DateTime updatedAt; // Não é final
 
   ProdutoModel({
     String? id,
     required this.nome,
     required this.quantidadeIdealMes, // Este ainda é um parâmetro required no construtor
-    required this.unidadeMedidaId,
     required this.categoriaId,
-    this.quantidadeEmEstoque = 0.0,
+    this.quantidadeEmEstoque = 0,
     this.isActive = true,
     this.isRemoved = false,
     DateTime? createdAt,
@@ -45,11 +42,10 @@ class ProdutoModel extends HiveObject {
   ProdutoModel copyWith({
     String? id,
     String? nome,
-    double?
+    int?
     quantidadeIdealMes, // Ainda pode ser usado no copyWith para criar uma nova instância
-    String? unidadeMedidaId,
     String? categoriaId,
-    double? quantidadeEmEstoque,
+    int? quantidadeEmEstoque,
     bool? isActive,
     bool? isRemoved,
     DateTime? createdAt,
@@ -59,7 +55,6 @@ class ProdutoModel extends HiveObject {
       id: id ?? this.id,
       nome: nome ?? this.nome,
       quantidadeIdealMes: quantidadeIdealMes ?? this.quantidadeIdealMes,
-      unidadeMedidaId: unidadeMedidaId ?? this.unidadeMedidaId,
       categoriaId: categoriaId ?? this.categoriaId,
       quantidadeEmEstoque: quantidadeEmEstoque ?? this.quantidadeEmEstoque,
       isActive: isActive ?? this.isActive,

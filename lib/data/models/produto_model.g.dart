@@ -19,21 +19,20 @@ class ProdutoModelAdapter extends TypeAdapter<ProdutoModel> {
     return ProdutoModel(
       id: fields[0] as String?,
       nome: fields[1] as String,
-      quantidadeIdealMes: fields[2] as double,
-      unidadeMedidaId: fields[3] as String,
-      categoriaId: fields[4] as String,
-      quantidadeEmEstoque: fields[5] as double,
-      isActive: fields[6] as bool,
-      isRemoved: fields[7] as bool,
-      createdAt: fields[8] as DateTime?,
-      updatedAt: fields[9] as DateTime?,
+      quantidadeIdealMes: fields[2] as int,
+      categoriaId: fields[3] as String,
+      quantidadeEmEstoque: fields[4] as int,
+      isActive: fields[5] as bool,
+      isRemoved: fields[6] as bool,
+      createdAt: fields[7] as DateTime?,
+      updatedAt: fields[8] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProdutoModel obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,18 +40,16 @@ class ProdutoModelAdapter extends TypeAdapter<ProdutoModel> {
       ..writeByte(2)
       ..write(obj.quantidadeIdealMes)
       ..writeByte(3)
-      ..write(obj.unidadeMedidaId)
-      ..writeByte(4)
       ..write(obj.categoriaId)
-      ..writeByte(5)
+      ..writeByte(4)
       ..write(obj.quantidadeEmEstoque)
-      ..writeByte(6)
+      ..writeByte(5)
       ..write(obj.isActive)
-      ..writeByte(7)
+      ..writeByte(6)
       ..write(obj.isRemoved)
-      ..writeByte(8)
+      ..writeByte(7)
       ..write(obj.createdAt)
-      ..writeByte(9)
+      ..writeByte(8)
       ..write(obj.updatedAt);
   }
 
