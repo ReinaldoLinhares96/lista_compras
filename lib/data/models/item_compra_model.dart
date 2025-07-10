@@ -14,7 +14,7 @@ class ItemCompraModel extends HiveObject {
   @HiveField(3)
   String nomeProduto;
   @HiveField(4)
-  double quantidadeComprada;
+  int quantidadeComprada;
   @HiveField(5)
   double precoUnitario;
   @HiveField(6)
@@ -61,7 +61,7 @@ class ItemCompraModel extends HiveObject {
     String? compraId,
     String? produtoId,
     String? nomeProduto,
-    double? quantidadeComprada,
+    int? quantidadeComprada,
     double? precoUnitario,
     double? subtotal,
     bool? ehAvulso,

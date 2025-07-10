@@ -2,17 +2,14 @@
 
 import 'package:flutter/material.dart';
 import '../../data/models/produto_model.dart';
-// import '../../data/repositories/produto_repository.dart'; // Removido, pois o callback já faz isso
-import '../../data/models/unidade_medida_model.dart'; // Para descrições
 
 // Define um typedef para os callbacks de ação nos produtos
 typedef ProductActionCallback = void Function(ProdutoModel product);
 
 class ProductCategoryPanel extends StatefulWidget {
   final String categoryName;
-  final List<ProdutoModel> productsInCategory;
-  final Map<String, String> unidadesDescricao;
-  final Map<String, String> unidadesSimbolo; // NOVO: Propriedade para símbolos
+  final List<ProdutoModel>
+  productsInCategory; // NOVO: Propriedade para símbolos
   final ProductActionCallback onEditProduct;
   final ProductActionCallback onDeleteProduct;
   final ProductActionCallback onUpdateStock;
@@ -23,9 +20,7 @@ class ProductCategoryPanel extends StatefulWidget {
   const ProductCategoryPanel({
     super.key,
     required this.categoryName,
-    required this.productsInCategory,
-    required this.unidadesDescricao,
-    required this.unidadesSimbolo, // NOVO: Requisito
+    required this.productsInCategory, // NOVO: Requisito
     required this.onEditProduct,
     required this.onDeleteProduct,
     required this.onUpdateStock,
@@ -62,11 +57,7 @@ class _ProductCategoryPanelState extends State<ProductCategoryPanel> {
             itemCount: widget.productsInCategory.length,
             itemBuilder: (context, productIndex) {
               final produto = widget.productsInCategory[productIndex];
-              // final unidadeDescricao = widget.unidadesDescricao[produto.unidadeMedidaId] ?? 'N/A'; // Não mais usado diretamente
-              final unidadeSimbolo =
-                  widget.unidadesSimbolo[produto.unidadeMedidaId] ??
-                  'N/A'; // Usando o símbolo
-              final double quantidadeParaComprar =
+              final int quantidadeParaComprar =
                   produto.quantidadeIdealMes - produto.quantidadeEmEstoque;
 
               Color? itemBackgroundColor;
@@ -89,15 +80,13 @@ class _ProductCategoryPanelState extends State<ProductCategoryPanel> {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text('Ideal: ${produto.quantidadeIdealMes.toString()}'),
                       Text(
-                        'Ideal p/ Mês: ${produto.quantidadeIdealMes.toStringAsFixed(1)} $unidadeSimbolo',
-                      ),
-                      Text(
-                        'Em Estoque: ${produto.quantidadeEmEstoque.toStringAsFixed(1)} $unidadeSimbolo',
+                        'Estoque: ${produto.quantidadeEmEstoque.toString()}',
                       ),
                       quantidadeParaComprar > 0
                           ? Text(
-                              'Precisa Comprar: ${quantidadeParaComprar.toStringAsFixed(1)} $unidadeSimbolo',
+                              'Precisa Comprar: ${quantidadeParaComprar.toString()}',
                               style: TextStyle(
                                 color: Colors.red[700],
                                 fontWeight: FontWeight.bold,

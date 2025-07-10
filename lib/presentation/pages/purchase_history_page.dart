@@ -9,7 +9,6 @@ import 'package:lista_compras/data/repositories/compra_repository.dart';
 import 'package:lista_compras/data/repositories/item_compra_repository.dart';
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
-import 'package:lista_compras/data/repositories/unidade_medida_repository.dart';
 import 'package:lista_compras/data/repositories/produto_repository.dart'; // Removido, se não usado
 
 import 'package:lista_compras/presentation/widgets/purchase_history_filter_modal.dart';
@@ -28,13 +27,11 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
       CompraStatusRepository();
   final ItemCompraRepository _itemCompraRepository = ItemCompraRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
-  final UnidadeMedidaRepository _unidadeMedidaRepository =
-      UnidadeMedidaRepository();
   final ProdutoRepository _produtoRepository = ProdutoRepository();
 
   Map<String, String> _compraStatusDescricao = {};
   Map<String, String> _categoriasDescricao = {};
-  Map<String, String> _unidadesSimbolo = {};
+
   List<ProdutoModel> _allProdutos = [];
 
   PurchaseFilterData _currentFilters = PurchaseFilterData();
@@ -54,11 +51,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
     _categoriaRepository.getCategorias().listen((categories) {
       setState(() {
         _categoriasDescricao = {for (var c in categories) c.id: c.descricao};
-      });
-    });
-    _unidadeMedidaRepository.getUnidadesMedida().listen((unidades) {
-      setState(() {
-        _unidadesSimbolo = {for (var u in unidades) u.id: u.simbolo};
       });
     });
     _produtoRepository.getActiveProdutos().listen((produtos) {
@@ -240,19 +232,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                                   itemCount: itemsDaCategoria.length,
                                   itemBuilder: (context, itemIndex) {
                                     final item = itemsDaCategoria[itemIndex];
-                                    String simboloUnidade = '';
-                                    if (item.produtoId != null) {
-                                      final ProdutoModel? prodOriginal =
-                                          _allProdutos.firstWhereOrNull(
-                                            (p) => p.id == item.produtoId,
-                                          );
-                                      if (prodOriginal != null) {
-                                        simboloUnidade =
-                                            _unidadesSimbolo[prodOriginal
-                                                .unidadeMedidaId] ??
-                                            '';
-                                      }
-                                    }
                                     return Card(
                                       margin: const EdgeInsets.symmetric(
                                         horizontal: 0,
@@ -261,7 +240,7 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                                       child: ListTile(
                                         title: Text(item.nomeProduto),
                                         subtitle: Text(
-                                          '${item.quantidadeComprada.toStringAsFixed(1)} $simboloUnidade x R\$ ${item.precoUnitario.toStringAsFixed(2).replaceAll('.', ',')}',
+                                          '${item.quantidadeComprada.toString()} x R\$ ${item.precoUnitario.toStringAsFixed(2).replaceAll('.', ',')}',
                                         ),
                                         trailing: Text(
                                           'R\$ ${item.subtotal.toStringAsFixed(2).replaceAll('.', ',')}',
