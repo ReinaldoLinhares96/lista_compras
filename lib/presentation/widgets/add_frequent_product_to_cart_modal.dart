@@ -11,7 +11,6 @@ class AddFrequentProductToCartModal extends StatefulWidget {
   final ProdutoModel product;
   final CompraModel? activePurchase;
   final Function(String) showSnackbar;
-  final Map<String, String> unidadesDescricao;
   final CompraRepository compraRepository;
   final ItemCompraRepository itemCompraRepository;
 
@@ -20,7 +19,6 @@ class AddFrequentProductToCartModal extends StatefulWidget {
     required this.product,
     required this.activePurchase,
     required this.showSnackbar,
-    required this.unidadesDescricao,
     required this.compraRepository,
     required this.itemCompraRepository,
   });
@@ -34,9 +32,9 @@ class _AddFrequentProductToCartModalState
     extends State<AddFrequentProductToCartModal> {
   late TextEditingController _quantidadeController;
   late TextEditingController _precoController;
-  late double _quantidadeNecessaria;
+  late int _quantidadeNecessaria;
   bool _isQuantidadeSugerida = true;
-  double? _finalQuantity; // Pode ser nulo
+  int? _finalQuantity; // Pode ser nulo
   double? _finalPrice; // Pode ser nulo
 
   @override
@@ -46,10 +44,10 @@ class _AddFrequentProductToCartModalState
         widget.product.quantidadeIdealMes - widget.product.quantidadeEmEstoque;
     _quantidadeNecessaria = _quantidadeNecessaria > 0
         ? _quantidadeNecessaria
-        : 0.0;
+        : 0;
 
     _quantidadeController = TextEditingController(
-      text: _quantidadeNecessaria.toStringAsFixed(1).replaceAll('.', ','),
+      text: _quantidadeNecessaria.toString(),
     );
     _precoController = TextEditingController();
 
@@ -65,9 +63,7 @@ class _AddFrequentProductToCartModalState
 
     _quantidadeController.addListener(() {
       if (!_isQuantidadeSugerida) {
-        final value = double.tryParse(
-          _quantidadeController.text.replaceAll(',', '.'),
-        );
+        final value = int.tryParse(_quantidadeController.text.toString());
         setState(() {
           _finalQuantity = value;
         });
@@ -146,9 +142,7 @@ class _AddFrequentProductToCartModalState
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 15),
-            Text(
-              'Precisa comprar: ${_quantidadeNecessaria.toStringAsFixed(1)} ${widget.unidadesDescricao[widget.product.unidadeMedidaId] ?? 'N/A'}',
-            ),
+            Text('Precisa comprar: ${_quantidadeNecessaria.toString()}'),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -160,8 +154,7 @@ class _AddFrequentProductToCartModalState
                       _isQuantidadeSugerida = value;
                       if (_isQuantidadeSugerida) {
                         _quantidadeController.text = _quantidadeNecessaria
-                            .toStringAsFixed(1)
-                            .replaceAll('.', ',');
+                            .toString();
                         _finalQuantity = _quantidadeNecessaria;
                       } else {
                         _quantidadeController.clear();
@@ -177,7 +170,7 @@ class _AddFrequentProductToCartModalState
               TextField(
                 controller: _quantidadeController,
                 keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+                  decimal: false,
                 ),
                 decoration: const InputDecoration(
                   labelText: 'Quantidade a Adicionar',
@@ -185,10 +178,10 @@ class _AddFrequentProductToCartModalState
               ),
               const SizedBox(height: 10),
               Text(
-                'Estoque atual: ${widget.product.quantidadeEmEstoque.toStringAsFixed(1)} ${widget.unidadesDescricao[widget.product.unidadeMedidaId] ?? 'N/A'}',
+                'Estoque atual: ${widget.product.quantidadeEmEstoque.toString()}',
               ),
               Text(
-                'Quantidade ideal: ${widget.product.quantidadeIdealMes.toStringAsFixed(1)} ${widget.unidadesDescricao[widget.product.unidadeMedidaId] ?? 'N/A'}',
+                'Quantidade ideal: ${widget.product.quantidadeIdealMes.toString()}',
               ),
               // CORREÇÃO: Verificação de nulidade antes da soma
               if (_finalQuantity != null &&
@@ -197,7 +190,7 @@ class _AddFrequentProductToCartModalState
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
-                    'Ao adicionar este item, seu estoque excederá o ideal em ${((_finalQuantity! + widget.product.quantidadeEmEstoque) - widget.product.quantidadeIdealMes).toStringAsFixed(1)}.\nVocê poderá ajustar a quantidade ideal após a compra.',
+                    'Ao adicionar este item, seu estoque excederá o ideal em ${((_finalQuantity! + widget.product.quantidadeEmEstoque) - widget.product.quantidadeIdealMes).toString()}.\nVocê poderá ajustar a quantidade ideal após a compra.',
                     style: const TextStyle(color: Colors.orange, fontSize: 12),
                   ),
                 ),

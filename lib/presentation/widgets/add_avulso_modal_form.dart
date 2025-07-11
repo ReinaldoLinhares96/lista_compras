@@ -31,7 +31,7 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
   late TextEditingController _quantidadeController;
   late TextEditingController _precoController;
 
-  double? _finalQuantity;
+  int? _finalQuantity;
   double? _finalPrice;
 
   @override
@@ -42,9 +42,7 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
     _precoController = TextEditingController();
 
     _quantidadeController.addListener(() {
-      final value = double.tryParse(
-        _quantidadeController.text.replaceAll(',', '.'),
-      );
+      final value = int.tryParse(_quantidadeController.text.toString());
       setState(() {
         _finalQuantity = value;
       });
@@ -90,7 +88,7 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
             TextField(
               controller: _quantidadeController,
               keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+                decimal: false,
               ),
               decoration: const InputDecoration(labelText: 'Quantidade'),
             ),

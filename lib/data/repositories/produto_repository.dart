@@ -52,7 +52,7 @@ class ProdutoRepository {
 
   Future<void> updateQuantidadeEmEstoque(
     String produtoId,
-    double novaQuantidade,
+    int novaQuantidade,
   ) async {
     try {
       final produto = _produtosBox.get(produtoId);

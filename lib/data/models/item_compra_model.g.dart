@@ -21,7 +21,7 @@ class ItemCompraModelAdapter extends TypeAdapter<ItemCompraModel> {
       compraId: fields[1] as String,
       produtoId: fields[2] as String?,
       nomeProduto: fields[3] as String,
-      quantidadeComprada: fields[4] as double,
+      quantidadeComprada: fields[4] as int,
       precoUnitario: fields[5] as double,
       subtotal: fields[6] as double?,
       ehAvulso: fields[7] as bool?,

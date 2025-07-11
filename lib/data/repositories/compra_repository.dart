@@ -17,22 +17,28 @@ class CompraRepository {
   }
 
   Future<CompraModel> iniciarNovaCompra() async {
-    // Busca o ID do status 'Ativa' da caixa Hive
-    final CompraStatusModel? ativaStatus = _compraStatusBox.values
-        .firstWhereOrNull(
-          (s) => s.id == CompraStatusType.ativa.value.toString(),
-        );
+    // Buscar o CompraStatusModel para 'Ativa' pelo ID numérico
+    final CompraStatusModel? ativaStatusModel = _compraStatusBox.get(
+      CompraStatusType.ativa.value.toString(),
+    ); // ATUALIZADO
 
-    if (ativaStatus == null) {
+    if (ativaStatusModel == null) {
       throw Exception(
         'Status "Ativa" não encontrado na caixa de status de compra.',
       );
     }
-    final String ativaStatusId = ativaStatus.id;
+
+    // Verificar se já existe uma compra ativa ANTES de criar uma nova
+    final CompraModel? compraExistente = await getCompraAtiva().first;
+    if (compraExistente != null) {
+      throw Exception(
+        'Já existe uma compra ativa. Finalize-a ou cancele-a primeiro.',
+      );
+    }
 
     final novaCompra = CompraModel(
       dataHoraInicio: DateTime.now(),
-      compraStatusId: ativaStatusId,
+      compraStatusId: ativaStatusModel.id,
       valorTotalCalculado: 0.0,
       isActive: true,
       isRemoved: false,
@@ -42,24 +48,40 @@ class CompraRepository {
   }
 
   Stream<CompraModel?> getCompraAtiva() {
-    return _comprasBox
-        .watch()
-        .map((event) {
-          final CompraStatusModel? ativaStatus = _compraStatusBox.values
-              .firstWhereOrNull(
-                (s) => s.id == CompraStatusType.ativa.value.toString(),
-              );
-          if (ativaStatus == null) return null;
+    // Buscar o CompraStatusModel para 'Ativa' pelo ID numérico
+    final CompraStatusModel? ativaStatusModel = _compraStatusBox.get(
+      CompraStatusType.ativa.value.toString(),
+    ); // ATUALIZADO
 
-          final compra = _comprasBox.values.firstWhereOrNull(
+    final CompraModel? initialActiveCompra = (ativaStatusModel == null)
+        ? null
+        : _comprasBox.values.firstWhereOrNull(
             (c) =>
                 c.isActive &&
                 !c.isRemoved &&
-                c.compraStatusId == ativaStatus.id,
+                c.compraStatusId == ativaStatusModel.id,
+          );
+
+    return _comprasBox
+        .watch()
+        .map((event) {
+          // Revalidar o CompraStatusModel para 'Ativa' a cada evento de stream (se ele puder mudar)
+          final CompraStatusModel? currentAtivaStatusModel = _compraStatusBox
+              .get(CompraStatusType.ativa.value.toString()); // ATUALIZADO
+
+          if (currentAtivaStatusModel == null) {
+            return null;
+          }
+
+          final CompraModel? compra = _comprasBox.values.firstWhereOrNull(
+            (c) =>
+                c.isActive &&
+                !c.isRemoved &&
+                c.compraStatusId == currentAtivaStatusModel.id,
           );
           return compra;
         })
-        .startWith(null); // CORREÇÃO: Emissão inicial de null
+        .startWith(initialActiveCompra);
   }
 
   Future<void> updateCompra(CompraModel compra) async {
@@ -126,8 +148,27 @@ class CompraRepository {
           List<CompraModel> filteredCompras = _comprasBox.values.where((
             compra,
           ) {
-            bool matchesStatus =
-                statusId == null || compra.compraStatusId == statusId;
+            bool matchesStatus = true;
+            if (statusId != null && statusId.isNotEmpty) {
+              matchesStatus = compra.compraStatusId == statusId;
+            } else {
+              // Se nenhum status específico foi pedido, inclua APENAS Finalizada ou Cancelada.
+              // Você precisará dos IDs de 'Finalizada' e 'Cancelada' aqui.
+              final String? finalizadaStatusId = _compraStatusBox.values
+                  .firstWhereOrNull(
+                    (s) => s.id == CompraStatusType.finalizada.value.toString(),
+                  )
+                  ?.id;
+              final String? canceladaStatusId = _compraStatusBox.values
+                  .firstWhereOrNull(
+                    (s) => s.id == CompraStatusType.cancelada.value.toString(),
+                  )
+                  ?.id;
+
+              matchesStatus =
+                  (compra.compraStatusId == finalizadaStatusId ||
+                  compra.compraStatusId == canceladaStatusId);
+            }
 
             // **CORREÇÃO AQUI:** Usar dataHoraFim para a filtragem de datas, se disponível
             final DateTime? dateToFilterBy =

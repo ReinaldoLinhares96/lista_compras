@@ -3,8 +3,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
-import '../../data/models/unidade_medida_model.dart';
-import '../../data/repositories/unidade_medida_repository.dart';
 import '../../data/models/categoria_model.dart';
 import '../../data/repositories/categoria_repository.dart';
 import 'package:lista_compras/presentation/pages/orcamento_page.dart';
@@ -15,11 +13,9 @@ import 'package:lista_compras/presentation/widgets/add_edit_product_modal.dart';
 import 'package:lista_compras/presentation/widgets/update_stock_dialog.dart';
 import 'package:lista_compras/presentation/widgets/product_search_bar.dart';
 import 'package:lista_compras/presentation/widgets/product_category_panel.dart';
-import 'package:lista_compras/presentation/widgets/add_unidade_medida_modal.dart';
 import 'package:lista_compras/presentation/widgets/add_categoria_modal.dart';
 
 // NOVOS IMPORTS PARA AS PÁGINAS DE GERENCIAMENTO
-import 'package:lista_compras/presentation/pages/unidade_medida_management_page.dart';
 import 'package:lista_compras/presentation/pages/categoria_management_page.dart';
 import 'package:lista_compras/presentation/pages/purchase_history_page.dart';
 
@@ -34,12 +30,8 @@ class ProductListPage extends StatefulWidget {
 
 class _ProductListPageState extends State<ProductListPage> {
   final ProdutoRepository _produtoRepository = ProdutoRepository();
-  final UnidadeMedidaRepository _unidadeMedidaRepository =
-      UnidadeMedidaRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
 
-  Map<String, String> _unidadesDescricao = {};
-  Map<String, String> _unidadesSimbolo = {};
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
@@ -79,13 +71,6 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Future<void> _loadAuxiliaryData() async {
-    _unidadeMedidaRepository.getUnidadesMedida().listen((unidades) {
-      setState(() {
-        _unidadesDescricao = {for (var u in unidades) u.id: u.descricao};
-        _unidadesSimbolo = {for (var u in unidades) u.id: u.simbolo};
-      });
-    });
-
     _categoriaRepository.getCategorias().listen((categorias) {
       setState(() {
         _categoriasDescricao = {for (var c in categorias) c.id: c.descricao};
@@ -121,8 +106,6 @@ class _ProductListPageState extends State<ProductListPage> {
         return UpdateStockDialog(
           product: product,
           productRepository: _produtoRepository,
-          unidadesDescricao: _unidadesDescricao,
-          unidadesSimbolo: _unidadesSimbolo,
         );
       },
     );
@@ -157,20 +140,6 @@ class _ProductListPageState extends State<ProductListPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.straighten),
-                title: const Text('Criar Nova Unidade de Medida'),
-                onTap: () {
-                  Navigator.pop(context);
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return const AddUnidadeMedidaModal();
-                    },
-                  );
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.category),
                 title: const Text('Criar Nova Categoria'),
                 onTap: () {
@@ -196,19 +165,6 @@ class _ProductListPageState extends State<ProductListPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const PurchaseHistoryPage(),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_input_component),
-                title: const Text('Unidades de Medida'),
-                onTap: () {
-                  Navigator.pop(context); // Fecha o modal de opções
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const UnidadeMedidaManagementPage(),
                     ),
                   );
                 },
@@ -336,8 +292,6 @@ class _ProductListPageState extends State<ProductListPage> {
                     key: ValueKey(categoria),
                     categoryName: categoria,
                     productsInCategory: produtosDaCategoria,
-                    unidadesDescricao: _unidadesDescricao,
-                    unidadesSimbolo: _unidadesSimbolo,
                     onEditProduct: _handleEditProduct,
                     onDeleteProduct: _handleDeleteProduct,
                     onUpdateStock: _handleUpdateStock,
