@@ -15,12 +15,16 @@ import 'package:lista_compras/data/models/compra_status_model.dart';
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/orcamento_repository.dart';
 
-// Importe a ProductListPage como a página inicial
-import 'package:lista_compras/presentation/pages/product_list_page.dart'; // CORREÇÃO AQUI
+// Importe a WelcomeScreen como a página inicial
+import 'package:lista_compras/presentation/pages/welcome_screen.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+// Firebase Imports
+import 'package:firebase_core/firebase_core.dart';
+import 'package:lista_compras/utils/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +32,11 @@ void main() async {
   await MobileAds.instance.initialize();
 
   await Hive.initFlutter();
+
+  // Inicializa o Firebase Core
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Usa o arquivo gerado
+  );
 
   // Registre todos os adaptadores gerados
   Hive.registerAdapter(ProdutoModelAdapter());
@@ -46,6 +55,9 @@ void main() async {
   await Hive.openBox<ItemCompraModel>('itensCompraBox');
   await Hive.openBox<CompraStatusModel>('compraStatusBox');
   await Hive.openBox<double>('orcamentoBox'); // Caixa para o valor do orçamento
+  await Hive.openBox<int>(
+    'adCounterBox',
+  ); // Abrir a caixa do contador de anúncios
 
   // Inicialização de repositórios que ainda gerenciam dados padrão.
   await CompraStatusRepository().initializeDefaultCompraStatus();
@@ -71,8 +83,7 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('pt', 'BR'), Locale('en', 'US')],
-      home:
-          const ProductListPage(), // CORREÇÃO AQUI: Define ProductListPage como home
+      home: const WelcomeScreen(),
     );
   }
 }
