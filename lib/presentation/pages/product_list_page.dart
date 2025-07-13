@@ -14,6 +14,7 @@ import 'package:lista_compras/presentation/widgets/update_stock_dialog.dart';
 import 'package:lista_compras/presentation/widgets/product_search_bar.dart';
 import 'package:lista_compras/presentation/widgets/product_category_panel.dart';
 import 'package:lista_compras/presentation/widgets/add_categoria_modal.dart';
+import 'package:lista_compras/presentation/widgets/banner_ad_widget.dart';
 
 // NOVOS IMPORTS PARA AS PÁGINAS DE GERENCIAMENTO
 import 'package:lista_compras/presentation/pages/categoria_management_page.dart';
@@ -333,6 +334,15 @@ class _ProductListPageState extends State<ProductListPage> {
         backgroundColor: Colors.blue.shade100,
         onTap: _onItemTapped,
       ),
+      // INCLUSÃO DO BANNER AD AQUI
+      // bottomSheet:
+      //     _selectedIndex ==
+      //         0 // Mostrar o anúncio apenas na aba de Produtos
+      //     ? const SafeArea(
+      //         // Garante que o anúncio não seja sobreposto pela barra de navegação do sistema
+      //         child: BannerAdWidget(),
+      //       )
+      //     : null,
     );
   }
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lista_compras/data/models/orcamento_model.dart';
@@ -18,13 +20,13 @@ import 'package:lista_compras/presentation/pages/product_list_page.dart'; // COR
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Inicializar o Google Mobile Ads SDK
+  await MobileAds.instance.initialize();
 
-  // CUIDADO: ESTA LINHA APAGARÁ TODOS OS DADOS DO HIVE NO SEU DISPOSITIVO/EMULADOR!
-  // USE APENAS PARA DEPURAÇÃO OU QUANDO PRECISA DE UM BANCO DE DADOS LIMPO.
-  // await Hive.deleteFromDisk(); // Comente ou remova após a depuração inicial
-  await Hive.deleteFromDisk();
   await Hive.initFlutter();
 
   // Registre todos os adaptadores gerados
