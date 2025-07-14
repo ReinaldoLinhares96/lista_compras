@@ -22,13 +22,14 @@ class OrcamentoModelAdapter extends TypeAdapter<OrcamentoModel> {
       updatedAt: fields[2] as DateTime?,
       isActive: fields[3] as bool,
       isRemoved: fields[4] as bool,
+      userId: fields[5] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, OrcamentoModel obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class OrcamentoModelAdapter extends TypeAdapter<OrcamentoModel> {
       ..writeByte(3)
       ..write(obj.isActive)
       ..writeByte(4)
-      ..write(obj.isRemoved);
+      ..write(obj.isRemoved)
+      ..writeByte(5)
+      ..write(obj.userId);
   }
 
   @override

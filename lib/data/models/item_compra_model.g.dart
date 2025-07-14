@@ -30,13 +30,14 @@ class ItemCompraModelAdapter extends TypeAdapter<ItemCompraModel> {
       isRemoved: fields[12] as bool?,
       createdAt: fields[9] as DateTime?,
       updatedAt: fields[10] as DateTime?,
+      userId: fields[13] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ItemCompraModel obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -62,7 +63,9 @@ class ItemCompraModelAdapter extends TypeAdapter<ItemCompraModel> {
       ..writeByte(11)
       ..write(obj.isActive)
       ..writeByte(12)
-      ..write(obj.isRemoved);
+      ..write(obj.isRemoved)
+      ..writeByte(13)
+      ..write(obj.userId);
   }
 
   @override

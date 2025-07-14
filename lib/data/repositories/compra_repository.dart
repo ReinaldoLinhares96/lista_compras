@@ -6,29 +6,38 @@ import '../models/compra_model.dart';
 import '../../core/enums/compra_status_type.dart'; // Mantenha este enum
 import '../models/compra_status_model.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // NOVO IMPORT
+import 'package:firebase_auth/firebase_auth.dart'; // NOVO IMPORT
 
 class CompraRepository {
   late Box<CompraModel> _comprasBox;
   late Box<CompraStatusModel> _compraStatusBox; // Referência à caixa de status
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   CompraRepository() {
     _comprasBox = Hive.box<CompraModel>('comprasBox');
     _compraStatusBox = Hive.box<CompraStatusModel>('compraStatusBox');
   }
 
+  CollectionReference<Map<String, dynamic>> _getFirestoreCollection(
+    String userId,
+  ) {
+    return _firestore.collection('users').doc(userId).collection('compras');
+  }
+
   Future<CompraModel> iniciarNovaCompra() async {
-    // Buscar o CompraStatusModel para 'Ativa' pelo ID numérico
+    final user = _auth.currentUser;
+
     final CompraStatusModel? ativaStatusModel = _compraStatusBox.get(
       CompraStatusType.ativa.value.toString(),
-    ); // ATUALIZADO
-
+    );
     if (ativaStatusModel == null) {
       throw Exception(
         'Status "Ativa" não encontrado na caixa de status de compra.',
       );
     }
 
-    // Verificar se já existe uma compra ativa ANTES de criar uma nova
     final CompraModel? compraExistente = await getCompraAtiva().first;
     if (compraExistente != null) {
       throw Exception(
@@ -42,54 +51,97 @@ class CompraRepository {
       valorTotalCalculado: 0.0,
       isActive: true,
       isRemoved: false,
+      userId: user?.uid, // Vincular ao usuário logado
     );
+
     await _comprasBox.put(novaCompra.id, novaCompra);
+    if (user != null) {
+      // && verificar status premium
+      await _getFirestoreCollection(
+        user.uid,
+      ).doc(novaCompra.id).set(novaCompra.toFirestore());
+    }
     return novaCompra;
   }
 
   Stream<CompraModel?> getCompraAtiva() {
-    // Buscar o CompraStatusModel para 'Ativa' pelo ID numérico
-    final CompraStatusModel? ativaStatusModel = _compraStatusBox.get(
-      CompraStatusType.ativa.value.toString(),
-    ); // ATUALIZADO
+    final user = _auth.currentUser;
+    if (user != null) {
+      // && verificar status premium
+      final CompraStatusModel? currentAtivaStatusModel = _compraStatusBox.get(
+        CompraStatusType.ativa.value.toString(),
+      );
+      if (currentAtivaStatusModel == null) return Stream.value(null);
 
-    final CompraModel? initialActiveCompra = (ativaStatusModel == null)
-        ? null
-        : _comprasBox.values.firstWhereOrNull(
-            (c) =>
-                c.isActive &&
-                !c.isRemoved &&
-                c.compraStatusId == ativaStatusModel.id,
-          );
+      return _getFirestoreCollection(user.uid)
+          .where('isActive', isEqualTo: true)
+          .where('isRemoved', isEqualTo: false)
+          .where('compraStatusId', isEqualTo: currentAtivaStatusModel.id)
+          .limit(1)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs.isNotEmpty
+                ? CompraModel.fromFirestore(snapshot.docs.first)
+                : null,
+          )
+          .startWith(null);
+    } else {
+      final CompraStatusModel? ativaStatusModel = _compraStatusBox.get(
+        CompraStatusType.ativa.value.toString(),
+      ); // ATUALIZADO
 
-    return _comprasBox
-        .watch()
-        .map((event) {
-          // Revalidar o CompraStatusModel para 'Ativa' a cada evento de stream (se ele puder mudar)
-          final CompraStatusModel? currentAtivaStatusModel = _compraStatusBox
-              .get(CompraStatusType.ativa.value.toString()); // ATUALIZADO
+      final CompraModel? initialActiveCompra = (ativaStatusModel == null)
+          ? null
+          : _comprasBox.values.firstWhereOrNull(
+              (c) =>
+                  c.isActive &&
+                  !c.isRemoved &&
+                  c.compraStatusId == ativaStatusModel.id,
+            );
 
-          if (currentAtivaStatusModel == null) {
-            return null;
-          }
+      return _comprasBox
+          .watch()
+          .map((event) {
+            // Revalidar o CompraStatusModel para 'Ativa' a cada evento de stream (se ele puder mudar)
+            final CompraStatusModel? currentAtivaStatusModel = _compraStatusBox
+                .get(CompraStatusType.ativa.value.toString()); // ATUALIZADO
 
-          final CompraModel? compra = _comprasBox.values.firstWhereOrNull(
-            (c) =>
-                c.isActive &&
-                !c.isRemoved &&
-                c.compraStatusId == currentAtivaStatusModel.id,
-          );
-          return compra;
-        })
-        .startWith(initialActiveCompra);
+            if (currentAtivaStatusModel == null) {
+              return null;
+            }
+
+            final CompraModel? compra = _comprasBox.values.firstWhereOrNull(
+              (c) =>
+                  c.isActive &&
+                  !c.isRemoved &&
+                  c.compraStatusId == currentAtivaStatusModel.id,
+            );
+            return compra;
+          })
+          .startWith(initialActiveCompra);
+    }
   }
 
   Future<void> updateCompra(CompraModel compra) async {
-    await _comprasBox.put(compra.id, compra);
-    compra.save(); // Salva as alterações
+    final user = _auth.currentUser;
+    final compraComUserId = compra.copyWith(
+      userId: user?.uid,
+      updatedAt: DateTime.now(),
+    );
+
+    await _comprasBox.put(compraComUserId.id, compraComUserId);
+
+    if (user != null) {
+      // && verificar status premium
+      await _getFirestoreCollection(
+        user.uid,
+      ).doc(compraComUserId.id).update(compraComUserId.toFirestore());
+    }
   }
 
   Future<void> finalizarCompra(String compraId, double valorFinal) async {
+    final user = _auth.currentUser;
+
     final CompraStatusModel? finalizadaStatus = _compraStatusBox.values
         .firstWhereOrNull(
           (s) => s.id == CompraStatusType.finalizada.value.toString(),
@@ -110,9 +162,22 @@ class CompraRepository {
       compra.updatedAt = DateTime.now();
       await compra.save();
     }
+
+    if (user != null) {
+      // && verificar status premium
+      await _getFirestoreCollection(user.uid).doc(compraId).update({
+        'dataHoraFim': FieldValue.serverTimestamp(),
+        'valorTotalCalculado': valorFinal,
+        'compraStatusId': finalizadaStatus.id,
+        'isActive': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   Future<void> cancelarCompra(String compraId, double valorFinal) async {
+    final user = _auth.currentUser;
+
     final CompraStatusModel? canceladoStatus = _compraStatusBox.values
         .firstWhereOrNull(
           (s) => s.id == CompraStatusType.cancelada.value.toString(),
@@ -133,6 +198,17 @@ class CompraRepository {
       compra.updatedAt = DateTime.now();
       await compra.save();
     }
+
+    if (user != null) {
+      // && verificar status premium
+      await _getFirestoreCollection(user.uid).doc(compraId).update({
+        'dataHoraFim': FieldValue.serverTimestamp(),
+        'valorTotalCalculado': 0.0,
+        'compraStatusId': canceladoStatus.id,
+        'isActive': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   Stream<List<CompraModel>> getFilteredCompras({
@@ -142,7 +218,9 @@ class CompraRepository {
     double? minTotal,
     double? maxTotal,
   }) {
-    return _comprasBox
+    final user = _auth.currentUser;
+
+    Stream<List<CompraModel>> hiveStream = _comprasBox
         .watch()
         .map((event) {
           List<CompraModel> filteredCompras = _comprasBox.values.where((
@@ -261,5 +339,22 @@ class CompraRepository {
             return dateB.compareTo(dateA);
           }),
         );
+
+    if (user != null) {
+      // && verificar status premium
+      return _getFirestoreCollection(user.uid)
+          .where('isActive', isEqualTo: false)
+          .where('isRemoved', isEqualTo: false)
+          .orderBy('dataHoraFim', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => CompraModel.fromFirestore(doc))
+                .toList(),
+          )
+          .startWith([]);
+    } else {
+      return hiveStream;
+    }
   }
 }

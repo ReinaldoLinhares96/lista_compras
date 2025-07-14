@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive/hive.dart';
 
 part 'orcamento_model.g.dart';
@@ -14,6 +15,8 @@ class OrcamentoModel extends HiveObject {
   bool isActive;
   @HiveField(4) // NOVO CAMPO
   bool isRemoved;
+  @HiveField(5)
+  String? userId;
 
   OrcamentoModel({
     required this.id,
@@ -21,6 +24,7 @@ class OrcamentoModel extends HiveObject {
     DateTime? updatedAt,
     this.isActive = true, // NOVO PARÂMETRO
     this.isRemoved = false, // NOVO PARÂMETRO
+    this.userId,
   }) : updatedAt = updatedAt ?? DateTime.now();
 
   OrcamentoModel copyWith({
@@ -29,6 +33,7 @@ class OrcamentoModel extends HiveObject {
     DateTime? updatedAt,
     bool? isActive, // NOVO PARÂMETRO
     bool? isRemoved, // NOVO PARÂMETRO
+    String? userId,
   }) {
     return OrcamentoModel(
       id: id ?? this.id,
@@ -36,6 +41,34 @@ class OrcamentoModel extends HiveObject {
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive, // NOVO NO COPYWITH
       isRemoved: isRemoved ?? this.isRemoved, // NOVO NO COPYWITH
+      userId: userId ?? this.userId,
     );
+  }
+
+  // NOVO: Factory constructor para ler do Firestore
+  factory OrcamentoModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw StateError('missing data for OrcamentoModel(id: ${doc.id})');
+    }
+    return OrcamentoModel(
+      id: doc.id,
+      valorMaximo: (data['valorMaximo'] as num).toDouble(),
+      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      isActive: data['isActive'] as bool? ?? true,
+      isRemoved: data['isRemoved'] as bool? ?? false,
+      userId: data['userId'] as String?,
+    );
+  }
+
+  // NOVO: Método para converter para um Map para salvar no Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'valorMaximo': valorMaximo,
+      'updatedAt': Timestamp.fromDate(updatedAt),
+      'isActive': isActive,
+      'isRemoved': isRemoved,
+      'userId': userId,
+    };
   }
 }

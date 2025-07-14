@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
@@ -31,6 +32,8 @@ class ItemCompraModel extends HiveObject {
   bool isActive;
   @HiveField(12)
   bool isRemoved;
+  @HiveField(13)
+  String? userId;
 
   ItemCompraModel({
     String? id,
@@ -46,6 +49,7 @@ class ItemCompraModel extends HiveObject {
     bool? isRemoved,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.userId,
   }) : id = id ?? const Uuid().v4(),
        subtotal = subtotal ?? (quantidadeComprada * precoUnitario),
        ehAvulso = ehAvulso ?? false,
@@ -70,6 +74,7 @@ class ItemCompraModel extends HiveObject {
     bool? isRemoved,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? userId,
   }) {
     final newQuantidadeComprada = quantidadeComprada ?? this.quantidadeComprada;
     final newPrecoUnitario = precoUnitario ?? this.precoUnitario;
@@ -90,6 +95,50 @@ class ItemCompraModel extends HiveObject {
       isRemoved: isRemoved ?? this.isRemoved,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      userId: userId ?? this.userId,
     );
+  }
+
+  // NOVO: Factory constructor para ler do Firestore
+  factory ItemCompraModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw StateError('missing data for ItemCompraModel(id: ${doc.id})');
+    }
+    return ItemCompraModel(
+      id: doc.id,
+      compraId: data['compraId'] as String,
+      produtoId: data['produtoId'] as String?,
+      nomeProduto: data['nomeProduto'] as String,
+      quantidadeComprada: (data['quantidadeComprada'] as num).toInt(),
+      precoUnitario: (data['precoUnitario'] as num).toDouble(),
+      subtotal: (data['subtotal'] as num? ?? 0.0).toDouble(),
+      ehAvulso: data['ehAvulso'] as bool? ?? false,
+      adicionadoNaLista: data['adicionadoNaLista'] as bool? ?? false,
+      isActive: data['isActive'] as bool? ?? true,
+      isRemoved: data['isRemoved'] as bool? ?? false,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      userId: data['userId'] as String?,
+    );
+  }
+
+  // NOVO: Método para converter para um Map para salvar no Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'compraId': compraId,
+      'produtoId': produtoId,
+      'nomeProduto': nomeProduto,
+      'quantidadeComprada': quantidadeComprada,
+      'precoUnitario': precoUnitario,
+      'subtotal': subtotal,
+      'ehAvulso': ehAvulso,
+      'adicionadoNaLista': adicionadoNaLista,
+      'isActive': isActive,
+      'isRemoved': isRemoved,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
+      'userId': userId,
+    };
   }
 }
