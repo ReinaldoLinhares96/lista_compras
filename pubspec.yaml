@@ -72,6 +72,8 @@ dependencies:
   cloud_firestore: ^4.15.8
   
   google_sign_in: ^6.2.1
+  in_app_purchase: ^3.2.0
+  in_app_purchase_android: ^0.3.0+1 
 
   # Adicione Hive
   hive: ^2.2.3
@@ -83,6 +85,7 @@ dependencies:
   rxdart: ^0.28.0
   flutter_localizations:
     sdk: flutter
+  in_app_purchase_storekit: ^0.3.22+1
 
 dev_dependencies:
   flutter_test:
