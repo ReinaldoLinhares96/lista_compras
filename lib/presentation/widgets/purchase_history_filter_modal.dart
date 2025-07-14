@@ -34,8 +34,7 @@ class PurchaseHistoryFilterModal extends StatefulWidget {
 
 class _PurchaseHistoryFilterModalState
     extends State<PurchaseHistoryFilterModal> {
-  final CompraStatusRepository _compraStatusRepository =
-      CompraStatusRepository();
+  late final CompraStatusRepository _compraStatusRepository;
   String? _selectedStatusId;
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;

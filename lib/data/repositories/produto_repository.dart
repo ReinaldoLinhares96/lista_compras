@@ -1,18 +1,25 @@
-// ignore_for_file: avoid_print, depend_on_referenced_packages
+// ignore_for_file: avoid_print, depend_on_referenced_packages, unused_field
 
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/produto_model.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // NOVO IMPORT
 import 'package:firebase_auth/firebase_auth.dart'; // NOVO IMPORT
+import 'user_repository.dart';
 
 class ProdutoRepository {
   late Box<ProdutoModel> _produtosBox;
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance; // Instância do Firestore
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  ProdutoRepository() {
+  // CORREÇÃO AQUI: Removido a inicialização da declaração
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final UserRepository _userRepository;
+  ProdutoRepository({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    required UserRepository userRepository, // NOVO: Receber UserRepository
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _userRepository = userRepository {
     _produtosBox = Hive.box<ProdutoModel>('produtosBox');
   }
 

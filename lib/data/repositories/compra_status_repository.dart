@@ -1,4 +1,4 @@
-// ignore_for_file: depend_on_referenced_packages, avoid_print, unnecessary_brace_in_string_interps
+// ignore_for_file: depend_on_referenced_packages, avoid_print, unnecessary_brace_in_string_interps, unused_import
 
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -7,14 +7,22 @@ import '../../core/enums/compra_status_type.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'user_repository.dart'; // NOVO IMPORT: UserRepository
 
 class CompraStatusRepository {
   late Box<CompraStatusModel> _compraStatusBox;
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance; // Instância do Firestore
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // CORREÇÃO: Removido a inicialização da declaração
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final UserRepository _userRepository; // NOVO: Instância de UserRepository
 
-  CompraStatusRepository() {
+  CompraStatusRepository({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    required UserRepository userRepository, // NOVO: Receber UserRepository
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _userRepository = userRepository {
     _compraStatusBox = Hive.box<CompraStatusModel>('compraStatusBox');
   }
 
@@ -57,7 +65,7 @@ class CompraStatusRepository {
           );
         }
 
-        // NOVO: Adicionar também ao Firestore (globalmente) se não existir lá
+        // Adicionar também ao Firestore (globalmente) se não existir lá
         // Isso é uma inicialização do lado do cliente para dados base.
         try {
           final docRef = _getFirestoreCollection().doc(newStatus.id);
@@ -84,9 +92,10 @@ class CompraStatusRepository {
   // Obter todos os status de compra (Hive ou Firestore)
   Stream<List<CompraStatusModel>> getCompraStatus() {
     final user = _auth.currentUser;
-    if (user != null) {
-      // && verificar status premium
-      // Se usuário logado, observar o Firestore (para status globais)
+    final isPremium = _userRepository.isPremium; // Consultar status premium
+
+    if (user != null && isPremium) {
+      // Usuário logado E PREMIUM: Observar Firestore (para status globais)
       return _getFirestoreCollection()
           .where('isRemoved', isEqualTo: false) // Se status puder ser removido
           .orderBy('descricao', descending: false)
@@ -98,7 +107,7 @@ class CompraStatusRepository {
           )
           .startWith([]); // Emissão inicial vazia
     } else {
-      // Usuário não logado (anônimo/gratuito): Usa Hive
+      // NÃO PREMIUM (inclui anônimo se o fluxo permitisse, e logados não premium): Usa Hive
       return _compraStatusBox
           .watch()
           .map((event) {
@@ -122,45 +131,35 @@ class CompraStatusRepository {
 
   // Método para obter um status pelo ID (Hive ou Firestore)
   CompraStatusModel? getStatusById(String id) {
-    final user = _auth.currentUser;
-    if (user != null) {
-      // && verificar status premium
-      // Buscar do Firestore (síncrono, se os dados já estiverem em cache local pelo stream)
-      // Ou, se realmente precisar de uma busca síncrona, fazer uma Future.
-      // Por simplicidade, vamos buscar do Hive, que é mais rápido.
-      final status = _compraStatusBox.get(id);
-      return (status != null && status.isActive && !status.isRemoved)
-          ? status
-          : null;
-    } else {
-      // Usuário não logado (anônimo/gratuito): Usa Hive
-      final status = _compraStatusBox.get(id);
-      return (status != null && status.isActive && !status.isRemoved)
-          ? status
-          : null;
-    }
+    // Para obter por ID, sempre podemos consultar o Hive, que deve ter o cache dos globais.
+    // O status global não é por usuário, então não precisa de user/isPremium aqui.
+    final status = _compraStatusBox.get(id);
+    return (status != null && status.isActive && !status.isRemoved)
+        ? status
+        : null;
   }
 
   // Adicionar métodos update e delete para CompraStatusModel se precisar gerenciar no futuro
   Future<void> updateCompraStatus(CompraStatusModel status) async {
     final user = _auth.currentUser;
+    final isPremium = _userRepository.isPremium;
     final statusComUserId = status.copyWith(
       userId: user?.uid,
-    ); // Atualiza userId se for logado
+    ); // Atualiza userId se for logado (para consistência do modelo)
 
     final existingStatusHive = _compraStatusBox.get(statusComUserId.id);
     if (existingStatusHive != null) {
       existingStatusHive.descricao = statusComUserId.descricao;
       existingStatusHive.isActive = statusComUserId.isActive;
       existingStatusHive.isRemoved = statusComUserId.isRemoved;
-      existingStatusHive.userId = statusComUserId.userId; // Atualiza userId
+      existingStatusHive.userId = statusComUserId.userId;
       await existingStatusHive.save();
     } else {
       await _compraStatusBox.put(statusComUserId.id, statusComUserId);
     }
 
-    if (user != null) {
-      // && verificar status premium
+    if (user != null && isPremium) {
+      // Se logado E PREMIUM, atualiza no Firestore (global)
       await _getFirestoreCollection()
           .doc(statusComUserId.id)
           .update(statusComUserId.toFirestore());
@@ -169,6 +168,7 @@ class CompraStatusRepository {
 
   Future<void> deleteCompraStatus(String id) async {
     final user = _auth.currentUser;
+    final isPremium = _userRepository.isPremium;
 
     final statusHive = _compraStatusBox.get(id);
     if (statusHive != null) {
@@ -177,8 +177,8 @@ class CompraStatusRepository {
       await statusHive.save();
     }
 
-    if (user != null) {
-      // && verificar status premium
+    if (user != null && isPremium) {
+      // Se logado E PREMIUM, atualiza no Firestore (global)
       await _getFirestoreCollection().doc(id).update({
         'isActive': false,
         'isRemoved': true,

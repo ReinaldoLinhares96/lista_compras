@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/orcamento_model.dart';
 import '../../data/repositories/orcamento_repository.dart';
 // Remova qualquer import do Firestore, se estiver aqui (ex: import 'package:cloud_firestore/cloud_firestore.dart';)
@@ -11,12 +12,18 @@ class OrcamentoPage extends StatefulWidget {
 }
 
 class _OrcamentoPageState extends State<OrcamentoPage> {
-  final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
+  late final OrcamentoRepository _orcamentoRepository;
   final TextEditingController _orcamentoController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+
+    _orcamentoRepository = Provider.of<OrcamentoRepository>(
+      context,
+      listen: false,
+    );
+
     // Escuta as mudanças no orçamento para manter o campo atualizado
     _orcamentoRepository.getOrcamento().listen((orcamento) {
       if (_orcamentoController.text !=

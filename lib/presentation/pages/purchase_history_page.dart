@@ -10,9 +10,11 @@ import 'package:lista_compras/data/repositories/item_compra_repository.dart';
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
 import 'package:lista_compras/data/repositories/produto_repository.dart'; // Removido, se não usado
+import 'package:lista_compras/data/repositories/user_repository.dart';
 
 import 'package:lista_compras/presentation/widgets/purchase_history_filter_modal.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class PurchaseHistoryPage extends StatefulWidget {
   const PurchaseHistoryPage({super.key});
@@ -22,12 +24,12 @@ class PurchaseHistoryPage extends StatefulWidget {
 }
 
 class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
-  final CompraRepository _compraRepository = CompraRepository();
-  final CompraStatusRepository _compraStatusRepository =
-      CompraStatusRepository();
-  final ItemCompraRepository _itemCompraRepository = ItemCompraRepository();
-  final CategoriaRepository _categoriaRepository = CategoriaRepository();
-  final ProdutoRepository _produtoRepository = ProdutoRepository();
+  late final CompraRepository _compraRepository;
+  late final ItemCompraRepository _itemCompraRepository;
+  late final ProdutoRepository _produtoRepository;
+  late final CategoriaRepository _categoriaRepository;
+  late final CompraStatusRepository _compraStatusRepository;
+  late final UserRepository _userRepository;
 
   Map<String, String> _compraStatusDescricao = {};
   Map<String, String> _categoriasDescricao = {};
@@ -39,6 +41,26 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   @override
   void initState() {
     super.initState();
+
+    _userRepository = Provider.of<UserRepository>(
+      context,
+      listen: false,
+    ); // Obter a instância
+    _produtoRepository = Provider.of<ProdutoRepository>(context, listen: false);
+    _categoriaRepository = Provider.of<CategoriaRepository>(
+      context,
+      listen: false,
+    );
+    _compraRepository = Provider.of<CompraRepository>(context, listen: false);
+    _itemCompraRepository = Provider.of<ItemCompraRepository>(
+      context,
+      listen: false,
+    );
+    _compraStatusRepository = Provider.of<CompraStatusRepository>(
+      context,
+      listen: false,
+    );
+
     _loadAuxiliaryData();
   }
 

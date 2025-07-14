@@ -1,12 +1,13 @@
+// lib/presentation/pages/welcome_screen.dart (APENAS AS ALTERAÇÕES RELEVANTES)
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Importar GoogleSignIn
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:lista_compras/data/repositories/user_repository.dart';
 
-import 'package:lista_compras/presentation/pages/product_list_page.dart'; // Seu app principal
-import 'package:lista_compras/presentation/pages/create_account_screen.dart'; // Tela de Criação de Conta
-import 'package:lista_compras/presentation/pages/premium_purchase_page.dart'; // Tela de Compra Premium
-
-// ignore_for_file: unused_element, prefer_final_fields, use_build_context_synchronously, avoid_print, unnecessary_brace_in_string_interps
+import 'package:lista_compras/presentation/pages/product_list_page.dart';
+import 'package:lista_compras/presentation/pages/create_account_screen.dart';
+import 'package:lista_compras/presentation/pages/premium_purchase_page.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -19,10 +20,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // AQUI: Alterado para GoogleSignIn()
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  late final UserRepository _userRepository;
 
-  bool _isLoading = false; // Para controlar o estado de carregamento
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -31,18 +32,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     super.dispose();
   }
 
-  // Métodos de Autenticação (movidos da AuthScreen)
+  // Método auxiliar para criar/atualizar perfil após login
+  Future<void> _handleSuccessfulLogin(User user) async {
+    await _userRepository.createUserProfile(
+      userId: user.uid,
+      email: user.email!,
+      displayName: user.displayName,
+      // isPremium será false por padrão, a menos que seja atualizado pela compra
+    );
+    // O StreamBuilder no build já vai redirecionar para ProductListPage
+  }
+
   Future<void> _signInWithEmailAndPassword() async {
     setState(() {
       _isLoading = true;
     });
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      // Se o login for bem-sucedido, o StreamBuilder no build
-      // irá detectar a mudança e redirecionar para ProductListPage.
+      final UserCredential userCredential = await _auth
+          .signInWithEmailAndPassword(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+      if (userCredential.user != null) {
+        await _handleSuccessfulLogin(userCredential.user!);
+      }
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'user-not-found') {
@@ -77,8 +90,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        // Usuário cancelou o login
-        return;
+        return; // Usuário cancelou o login
       }
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
@@ -86,7 +98,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      await _auth.signInWithCredential(credential);
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
+      if (userCredential.user != null) {
+        await _handleSuccessfulLogin(userCredential.user!);
+      }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'account-exists-with-different-credential') {
         if (mounted) {
@@ -122,23 +139,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Usar StreamBuilder para ouvir o estado de autenticação do Firebase
     return StreamBuilder<User?>(
-      stream: _auth.authStateChanges(), // Monitora o estado de autenticação
+      stream: _auth.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child:
-                  CircularProgressIndicator(), // Mostra carregamento enquanto verifica o login
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
         if (snapshot.hasData && snapshot.data != null) {
-          // Usuário está logado, redireciona para o app principal
           return const ProductListPage();
         } else {
-          // Usuário NÃO está logado, exibe a tela de login/escolha
           return Scaffold(
             appBar: AppBar(
               title: const Text(
@@ -149,23 +160,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               backgroundColor: Colors.blue.shade100,
             ),
             body: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  ) // Indicador de carregamento quando autenticando
+                ? const Center(child: CircularProgressIndicator())
                 : Center(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(20.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Imagem do Ícone do App
                           Image.asset(
-                            'lib/presentation/assets/app_icon.png',
-                            height: 120, // Tamanho ajustado
-                            width: 120, // Tamanho ajustado
+                            'lib/presentation/assets/logo.png',
+                            height: 120,
+                            width: 120,
                           ),
                           const SizedBox(height: 20),
-                          // Breve Descrição do App
                           const Text(
                             'Organize sua lista, controle seu orçamento e o total do carrinho em tempo real no supermercado, e nunca mais esqueça um item.',
                             style: TextStyle(
@@ -176,7 +183,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 40),
-                          // Campos de Login
                           TextField(
                             controller: _emailController,
                             decoration: const InputDecoration(
@@ -193,7 +199,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             obscureText: true,
                           ),
                           const SizedBox(height: 20),
-                          // Botão Entrar
                           ElevatedButton(
                             onPressed: _signInWithEmailAndPassword,
                             style: ElevatedButton.styleFrom(
@@ -205,7 +210,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          // Botão Entrar com Google
                           OutlinedButton(
                             onPressed: _signInWithGoogle,
                             style: OutlinedButton.styleFrom(
@@ -217,7 +221,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          // Botão Criar Conta
                           TextButton(
                             onPressed: () {
                               Navigator.push(
@@ -233,12 +236,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 30),
-                          const Divider(), // Separador visual
+                          const Divider(),
                           const SizedBox(height: 20),
-                          // Botão Ser Premium
                           ElevatedButton(
                             onPressed: () {
-                              // Navega para a tela de pagamento premium
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -249,8 +250,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             },
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size(double.infinity, 60),
-                              backgroundColor: Colors
-                                  .deepPurple, // Cor de destaque para Premium
+                              backgroundColor: Colors.deepPurple,
                               foregroundColor: Colors.white,
                             ),
                             child: const Text(

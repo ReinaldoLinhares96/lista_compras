@@ -1,6 +1,10 @@
+// lib/presentation/pages/create_account_screen.dart (APENAS AS ALTERAÇÕES RELEVANTES)
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Importar GoogleSignIn
+import 'package:google_sign_in/google_sign_in.dart'; // NOVO: Importar UserRepository // NOVO IMPORT: Para acessar o Provider
+import 'package:lista_compras/data/repositories/user_repository.dart';
+import 'package:provider/provider.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -13,9 +17,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Instância única
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  late final UserRepository _userRepository;
 
-  bool _isLoading = false; // Para controlar o estado de carregamento
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _userRepository = Provider.of<UserRepository>(context, listen: false);
+  }
 
   @override
   void dispose() {
@@ -24,28 +36,42 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     super.dispose();
   }
 
+  // Método auxiliar para criar perfil após criação de conta
+  Future<void> _handleSuccessfulAccountCreation(User user) async {
+    await _userRepository.createUserProfile(
+      userId: user.uid,
+      email: user.email!,
+      displayName: user.displayName,
+      isPremium: false, // Por padrão, não é premium ao criar conta
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Conta criada com sucesso! Você já está logado.'),
+        ),
+      );
+      Navigator.pop(context); // Volta para a WelcomeScreen que redirecionará
+    }
+  }
+
   Future<void> _createAccount() async {
     setState(() {
       _isLoading = true;
     });
     try {
-      await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Conta criada com sucesso! Você já está logado.'),
-          ),
-        );
-        Navigator.pop(context); // Volta para a WelcomeScreen que redirecionará
+      final UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+      if (userCredential.user != null) {
+        await _handleSuccessfulAccountCreation(userCredential.user!);
       }
     } on FirebaseAuthException catch (e) {
       String message;
       if (e.code == 'weak-password') {
         message = 'A senha fornecida é muito fraca.';
-      } else if (e.code == 'email-already-in-use') {
+      } else if (e.code == 'email-already-in_use') {
         message = 'Já existe uma conta com este e-mail.';
       } else {
         message = 'Erro ao criar conta: ${e.message}';
@@ -73,28 +99,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       _isLoading = true;
     });
     try {
-      // CORREÇÃO AQUI: Chamar .signIn() para iniciar o fluxo de login interativo
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         return; // Usuário cancelou
       }
-      // CORREÇÃO AQUI: Aguardar o Future retornado por googleUser.authentication
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      await _auth.signInWithCredential(credential);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Conta criada com sucesso com Google! Você já está logado.',
-            ),
-          ),
-        );
-        Navigator.pop(context); // Volta para a WelcomeScreen que redirecionará
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
+      if (userCredential.user != null) {
+        await _handleSuccessfulAccountCreation(userCredential.user!);
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'account-exists-with-different-credential') {
