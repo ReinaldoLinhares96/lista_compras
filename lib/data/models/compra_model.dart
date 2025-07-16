@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
@@ -23,6 +24,8 @@ class CompraModel extends HiveObject {
   DateTime createdAt; // Não é final, pode ser alterado
   @HiveField(8)
   DateTime updatedAt; // Não é final, pode ser alterado
+  @HiveField(9)
+  String? userId;
 
   CompraModel({
     String? id,
@@ -34,6 +37,7 @@ class CompraModel extends HiveObject {
     this.isRemoved = false,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.userId,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -48,6 +52,7 @@ class CompraModel extends HiveObject {
     bool? isRemoved,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? userId,
   }) {
     // Usamos o construtor, que espera um valor para compraStatusId.
     // Garantimos que ele não é nulo.
@@ -63,6 +68,45 @@ class CompraModel extends HiveObject {
       isRemoved: isRemoved ?? this.isRemoved,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      userId: userId ?? this.userId,
     );
+  }
+
+  // NOVO: Factory constructor para ler do Firestore
+  factory CompraModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw StateError('missing data for CompraModel(id: ${doc.id})');
+    }
+    return CompraModel(
+      id: doc.id,
+      dataHoraInicio: (data['dataHoraInicio'] as Timestamp).toDate(),
+      dataHoraFim: (data['dataHoraFim'] as Timestamp?)?.toDate(),
+      valorTotalCalculado: (data['valorTotalCalculado'] as num? ?? 0.0)
+          .toDouble(),
+      compraStatusId: data['compraStatusId'] as String,
+      isActive: data['isActive'] as bool? ?? true,
+      isRemoved: data['isRemoved'] as bool? ?? false,
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      userId: data['userId'] as String?,
+    );
+  }
+
+  // NOVO: Método para converter para um Map para salvar no Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'dataHoraInicio': Timestamp.fromDate(dataHoraInicio),
+      'dataHoraFim': dataHoraFim != null
+          ? Timestamp.fromDate(dataHoraFim!)
+          : null,
+      'valorTotalCalculado': valorTotalCalculado,
+      'compraStatusId': compraStatusId,
+      'isActive': isActive,
+      'isRemoved': isRemoved,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'updatedAt': Timestamp.fromDate(updatedAt),
+      'userId': userId,
+    };
   }
 }

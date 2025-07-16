@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:lista_compras/data/models/orcamento_model.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:lista_compras/utils/firebase_options.dart';
+import 'package:provider/provider.dart';
 
 // Importe todos os seus modelos para registrar seus adaptadores
 import 'package:lista_compras/data/models/produto_model.dart';
@@ -8,34 +11,47 @@ import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
 import 'package:lista_compras/data/models/item_compra_model.dart';
 import 'package:lista_compras/data/models/compra_status_model.dart';
+import 'package:lista_compras/data/models/orcamento_model.dart';
+import 'package:lista_compras/data/models/user_profile_model.dart';
 
-// Repositórios necessários para inicialização de dados padrão (se aplicável no Hive)
+// Importe o enum CompraStatusType (ainda é necessário, mas não para registro do Hive)
+// ignore: unused_import
+import 'package:lista_compras/core/enums/compra_status_type.dart'; // Re-adicionado, se foi removido
+
+// Importe TODOS os repositórios que serão fornecidos
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/orcamento_repository.dart';
+import 'package:lista_compras/data/repositories/user_repository.dart';
+import 'package:lista_compras/data/repositories/produto_repository.dart';
+import 'package:lista_compras/data/repositories/categoria_repository.dart';
+import 'package:lista_compras/data/repositories/compra_repository.dart';
+import 'package:lista_compras/data/repositories/item_compra_repository.dart';
 
-// Importe a ProductListPage como a página inicial
-import 'package:lista_compras/presentation/pages/product_list_page.dart'; // CORREÇÃO AQUI
+import 'package:lista_compras/presentation/pages/welcome_screen.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // CUIDADO: ESTA LINHA APAGARÁ TODOS OS DADOS DO HIVE NO SEU DISPOSITIVO/EMULADOR!
-  // USE APENAS PARA DEPURAÇÃO OU QUANDO PRECISA DE UM BANCO DE DADOS LIMPO.
-  // await Hive.deleteFromDisk(); // Comente ou remova após a depuração inicial
-  await Hive.deleteFromDisk();
+  // Inicializa o Google Mobile Ads SDK
+  await MobileAds.instance.initialize();
+
+  // Inicializa o Firebase Core
+  // Certifique-se de que firebase_options.dart está em lib/
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Inicialização do Hive e registro de adaptadores
   await Hive.initFlutter();
 
-  // Registre todos os adaptadores gerados
-  Hive.registerAdapter(ProdutoModelAdapter());
-  Hive.registerAdapter(CategoriaModelAdapter());
-  Hive.registerAdapter(CompraModelAdapter());
-  Hive.registerAdapter(ItemCompraModelAdapter());
-  Hive.registerAdapter(CompraStatusModelAdapter());
-  Hive.registerAdapter(
-    OrcamentoModelAdapter(),
-  ); // Não esquecer do OrcamentoModel
+  // Registre todos os adaptadores gerados (verifique se os typeIds são únicos e sequenciais)
+  Hive.registerAdapter(ProdutoModelAdapter()); // typeId: 0
+  Hive.registerAdapter(CategoriaModelAdapter()); // typeId: 2
+  Hive.registerAdapter(CompraModelAdapter()); // typeId: 3
+  Hive.registerAdapter(ItemCompraModelAdapter()); // typeId: 4
+  Hive.registerAdapter(CompraStatusModelAdapter()); // typeId: 5
+  Hive.registerAdapter(OrcamentoModelAdapter()); // typeId: 6
+  Hive.registerAdapter(UserProfileModelAdapter()); // typeId: 7
 
   // ABRA AS CAIXAS (BOXES) QUE VOCÊ VAI USAR NO SEU APLICATIVO
   await Hive.openBox<ProdutoModel>('produtosBox');
@@ -43,13 +59,50 @@ void main() async {
   await Hive.openBox<CompraModel>('comprasBox');
   await Hive.openBox<ItemCompraModel>('itensCompraBox');
   await Hive.openBox<CompraStatusModel>('compraStatusBox');
-  await Hive.openBox<double>('orcamentoBox'); // Caixa para o valor do orçamento
+  await Hive.openBox<double>('orcamentoBox');
+  await Hive.openBox<bool>('premiumStatusBox'); // Para cache do status premium
 
-  // Inicialização de repositórios que ainda gerenciam dados padrão.
-  await CompraStatusRepository().initializeDefaultCompraStatus();
-  await OrcamentoRepository().initializeDefaultOrcamento();
+  // Instancie o UserRepository primeiro
+  final UserRepository userRepository = UserRepository();
 
-  runApp(const MyApp());
+  // Instancie os repositórios que dependem de outros repositórios, PASSANDO userRepository
+  final CompraStatusRepository compraStatusRepository = CompraStatusRepository(
+    userRepository: userRepository,
+  ); // CORREÇÃO AQUI
+  await compraStatusRepository.initializeDefaultCompraStatus();
+
+  final OrcamentoRepository orcamentoRepository = OrcamentoRepository(
+    userRepository: userRepository,
+  ); // CORREÇÃO AQUI
+  await orcamentoRepository.initializeDefaultOrcamento();
+
+  final ProdutoRepository produtoRepository = ProdutoRepository(
+    userRepository: userRepository,
+  );
+  final CategoriaRepository categoriaRepository = CategoriaRepository(
+    userRepository: userRepository,
+  );
+  final CompraRepository compraRepository = CompraRepository(
+    userRepository: userRepository,
+  );
+  final ItemCompraRepository itemCompraRepository = ItemCompraRepository(
+    userRepository: userRepository,
+  );
+  runApp(
+    MultiProvider(
+      providers: [
+        // Fornecer a instância única de cada repositório
+        Provider<UserRepository>(create: (_) => userRepository),
+        Provider<ProdutoRepository>(create: (_) => produtoRepository),
+        Provider<CategoriaRepository>(create: (_) => categoriaRepository),
+        Provider<CompraRepository>(create: (_) => compraRepository),
+        Provider<ItemCompraRepository>(create: (_) => itemCompraRepository),
+        Provider<CompraStatusRepository>(create: (_) => compraStatusRepository),
+        Provider<OrcamentoRepository>(create: (_) => orcamentoRepository),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -69,8 +122,7 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('pt', 'BR'), Locale('en', 'US')],
-      home:
-          const ProductListPage(), // CORREÇÃO AQUI: Define ProductListPage como home
+      home: const WelcomeScreen(),
     );
   }
 }

@@ -16,7 +16,7 @@ class EditCategoriaModal extends StatefulWidget {
 class _EditCategoriaModalState extends State<EditCategoriaModal> {
   final TextEditingController _descricaoController = TextEditingController();
 
-  final CategoriaRepository _repository = CategoriaRepository();
+  late final CategoriaRepository _repository;
 
   @override
   void initState() {

@@ -1,6 +1,11 @@
 // ignore_for_file: prefer_final_fields, avoid_print
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:lista_compras/data/repositories/user_repository.dart';
+import 'package:lista_compras/data/services/hive_service.dart';
+import 'package:lista_compras/presentation/pages/premium_purchase_page.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
 import '../../data/models/categoria_model.dart';
@@ -14,6 +19,7 @@ import 'package:lista_compras/presentation/widgets/update_stock_dialog.dart';
 import 'package:lista_compras/presentation/widgets/product_search_bar.dart';
 import 'package:lista_compras/presentation/widgets/product_category_panel.dart';
 import 'package:lista_compras/presentation/widgets/add_categoria_modal.dart';
+import 'package:lista_compras/presentation/widgets/banner_ad_widget.dart';
 
 // NOVOS IMPORTS PARA AS PÁGINAS DE GERENCIAMENTO
 import 'package:lista_compras/presentation/pages/categoria_management_page.dart';
@@ -29,8 +35,9 @@ class ProductListPage extends StatefulWidget {
 }
 
 class _ProductListPageState extends State<ProductListPage> {
-  final ProdutoRepository _produtoRepository = ProdutoRepository();
-  final CategoriaRepository _categoriaRepository = CategoriaRepository();
+  late final ProdutoRepository _produtoRepository;
+  late final UserRepository _userRepository;
+  late final CategoriaRepository _categoriaRepository;
 
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
@@ -47,6 +54,17 @@ class _ProductListPageState extends State<ProductListPage> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+
+    _userRepository = Provider.of<UserRepository>(
+      context,
+      listen: false,
+    ); // Obter a instância
+    _produtoRepository = Provider.of<ProdutoRepository>(context, listen: false);
+    _categoriaRepository = Provider.of<CategoriaRepository>(
+      context,
+      listen: false,
+    );
+
     _loadAuxiliaryData();
 
     _searchController.addListener(() {
@@ -154,6 +172,19 @@ class _ProductListPageState extends State<ProductListPage> {
                 },
               ),
               ListTile(
+                leading: const Icon(Icons.category_outlined),
+                title: const Text('Categorias'),
+                onTap: () {
+                  Navigator.pop(context); // Fecha o modal de opções
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CategoriaManagementPage(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
                 leading: const Icon(
                   Icons.history,
                 ), // NOVO: Ícone para Histórico
@@ -170,16 +201,26 @@ class _ProductListPageState extends State<ProductListPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.category_outlined),
-                title: const Text('Categorias'),
+                leading: const Icon(Icons.workspace_premium),
+                title: const Text('Se tornar Premium'),
                 onTap: () {
-                  Navigator.pop(context); // Fecha o modal de opções
+                  Navigator.pop(context); // Fecha o BottomSheet
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CategoriaManagementPage(),
+                      builder: (context) => const PremiumPurchasePage(),
                     ),
                   );
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Sair da Conta'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await FirebaseAuth.instance
+                      .signOut(); // Limpa dados locais ao deslogar
                 },
               ),
             ],
@@ -333,6 +374,15 @@ class _ProductListPageState extends State<ProductListPage> {
         backgroundColor: Colors.blue.shade100,
         onTap: _onItemTapped,
       ),
+      // INCLUSÃO DO BANNER AD AQUI
+      // bottomSheet:
+      //     _selectedIndex ==
+      //         0 // Mostrar o anúncio apenas na aba de Produtos
+      //     ? const SafeArea(
+      //         // Garante que o anúncio não seja sobreposto pela barra de navegação do sistema
+      //         child: BannerAdWidget(),
+      //       )
+      //     : null,
     );
   }
 }

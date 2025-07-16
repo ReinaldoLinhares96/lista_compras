@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 // Remova o import do Firebase, se estiver aqui (ex: import 'package:cloud_firestore/cloud_firestore.dart';)
 import 'package:lista_compras/data/models/categoria_model.dart';
+import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/presentation/widgets/add_frequent_product_to_cart_modal.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/models/item_compra_model.dart';
@@ -17,6 +18,9 @@ import '../../data/repositories/orcamento_repository.dart'; // Para descrições
 import '../../data/repositories/categoria_repository.dart'; // Para descrições
 import '../../core/enums/compra_status_type.dart';
 import 'dart:developer' as developer;
+import 'package:provider/provider.dart';
+import 'package:lista_compras/data/repositories/user_repository.dart';
+import 'package:lista_compras/main.dart';
 
 import 'package:lista_compras/presentation/widgets/add_avulso_modal_form.dart';
 
@@ -28,12 +32,13 @@ class ActiveShoppingPage extends StatefulWidget {
 }
 
 class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
-  final CompraRepository _compraRepository = CompraRepository();
-  final ItemCompraRepository _itemCompraRepository = ItemCompraRepository();
-  final ProdutoRepository _produtoRepository = ProdutoRepository();
-  final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
-  final CategoriaRepository _categoriaRepository = CategoriaRepository();
-
+  late final CompraRepository _compraRepository;
+  late final ItemCompraRepository _itemCompraRepository;
+  late final ProdutoRepository _produtoRepository;
+  late final OrcamentoRepository _orcamentoRepository;
+  late final CategoriaRepository _categoriaRepository;
+  late final CompraStatusRepository _compraStatusRepository;
+  late final UserRepository _userRepository;
   CompraModel? _compraAtiva;
   OrcamentoModel? _orcamentoAtual;
   List<ProdutoModel> _allProdutosFrequentes = [];
@@ -48,6 +53,29 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   @override
   void initState() {
     super.initState();
+    _userRepository = Provider.of<UserRepository>(
+      context,
+      listen: false,
+    ); // Obter a instância
+    _compraRepository = Provider.of<CompraRepository>(context, listen: false);
+    _itemCompraRepository = Provider.of<ItemCompraRepository>(
+      context,
+      listen: false,
+    );
+    _produtoRepository = Provider.of<ProdutoRepository>(context, listen: false);
+    _orcamentoRepository = Provider.of<OrcamentoRepository>(
+      context,
+      listen: false,
+    );
+    _categoriaRepository = Provider.of<CategoriaRepository>(
+      context,
+      listen: false,
+    );
+    _compraStatusRepository = Provider.of<CompraStatusRepository>(
+      context,
+      listen: false,
+    );
+
     _listenToAuxiliaryData();
     _listenToCompraAtiva();
     _listenToOrcamento();
@@ -445,7 +473,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         // Chamar o método de cancelar compra no repositório (apenas um parâmetro)
         await _compraRepository.cancelarCompra(
           _compraAtiva!.id,
-          valorTotalParaFinalizar,
         ); // Removido o segundo parâmetro
         print('DEBUG: Compra cancelada no BD.');
 

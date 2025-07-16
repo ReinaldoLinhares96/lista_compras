@@ -17,8 +17,8 @@ class AddEditProductModal extends StatefulWidget {
 }
 
 class _AddEditProductModalState extends State<AddEditProductModal> {
-  final ProdutoRepository _produtoRepository = ProdutoRepository();
-  final CategoriaRepository _categoriaRepository = CategoriaRepository();
+  late final ProdutoRepository _produtoRepository;
+  late final CategoriaRepository _categoriaRepository;
 
   late TextEditingController _nomeController;
   late int _quantidadeIdealMes;

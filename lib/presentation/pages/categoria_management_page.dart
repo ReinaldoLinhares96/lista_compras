@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
-import 'package:lista_compras/presentation/widgets/edit_categoria_modal.dart'; // Importe o modal de edição
+import 'package:lista_compras/presentation/widgets/edit_categoria_modal.dart';
+import 'package:provider/provider.dart'; // Importe o modal de edição
 
 class CategoriaManagementPage extends StatefulWidget {
   const CategoriaManagementPage({super.key});
@@ -12,7 +13,14 @@ class CategoriaManagementPage extends StatefulWidget {
 }
 
 class _CategoriaManagementPageState extends State<CategoriaManagementPage> {
-  final CategoriaRepository _repository = CategoriaRepository();
+  late final CategoriaRepository _repository;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _repository = Provider.of<CategoriaRepository>(context, listen: false);
+  }
 
   void _showEditCategoriaModal(CategoriaModel categoria) {
     showModalBottomSheet(

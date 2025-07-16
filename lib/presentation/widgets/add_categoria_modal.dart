@@ -17,7 +17,7 @@ class AddCategoriaModal extends StatefulWidget {
 class _AddCategoriaModalState extends State<AddCategoriaModal> {
   final TextEditingController _descricaoController = TextEditingController();
 
-  final CategoriaRepository _repository = CategoriaRepository();
+  late final CategoriaRepository _repository;
 
   @override
   void dispose() {

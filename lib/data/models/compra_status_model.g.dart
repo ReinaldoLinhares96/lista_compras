@@ -21,13 +21,14 @@ class CompraStatusModelAdapter extends TypeAdapter<CompraStatusModel> {
       descricao: fields[1] as String,
       isActive: fields[2] as bool,
       isRemoved: fields[3] as bool,
+      userId: fields[4] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, CompraStatusModel obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class CompraStatusModelAdapter extends TypeAdapter<CompraStatusModel> {
       ..writeByte(2)
       ..write(obj.isActive)
       ..writeByte(3)
-      ..write(obj.isRemoved);
+      ..write(obj.isRemoved)
+      ..writeByte(4)
+      ..write(obj.userId);
   }
 
   @override
