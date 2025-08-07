@@ -19,6 +19,8 @@ import 'package:lista_compras/presentation/widgets/add_categoria_modal.dart';
 import 'package:lista_compras/presentation/pages/categoria_management_page.dart';
 import 'package:lista_compras/presentation/pages/purchase_history_page.dart';
 
+import 'package:lista_compras/services/ad_manager.dart';
+
 // ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, unused_import, unused_element, duplicate_ignore
 
 class ProductListPage extends StatefulWidget {
@@ -54,12 +56,15 @@ class _ProductListPageState extends State<ProductListPage> {
         _searchText = _searchController.text;
       });
     });
+
+    AdManager.loadInterstitialAd();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _searchController.dispose();
+    AdManager.disposeAd();
     super.dispose();
   }
 
@@ -68,6 +73,7 @@ class _ProductListPageState extends State<ProductListPage> {
       _selectedIndex = index;
     });
     _pageController.jumpToPage(index);
+    AdManager.maybeShowInterstitialAd();
   }
 
   Future<void> _loadAuxiliaryData() async {
@@ -144,6 +150,7 @@ class _ProductListPageState extends State<ProductListPage> {
                 title: const Text('Criar Nova Categoria'),
                 onTap: () {
                   Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
@@ -159,9 +166,9 @@ class _ProductListPageState extends State<ProductListPage> {
                 ), // NOVO: Ícone para Histórico
                 title: const Text('Histórico de Compras'), // NOVO: Título
                 onTap: () {
-                  Navigator.pop(context); // Fecha o modal de opções
+                  Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
                   Navigator.push(
-                    // Navega para a nova página
                     context,
                     MaterialPageRoute(
                       builder: (context) => const PurchaseHistoryPage(),
@@ -173,7 +180,8 @@ class _ProductListPageState extends State<ProductListPage> {
                 leading: const Icon(Icons.category_outlined),
                 title: const Text('Categorias'),
                 onTap: () {
-                  Navigator.pop(context); // Fecha o modal de opções
+                  Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
                   Navigator.push(
                     context,
                     MaterialPageRoute(

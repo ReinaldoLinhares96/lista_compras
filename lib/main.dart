@@ -24,7 +24,6 @@ void main() async {
   // CUIDADO: ESTA LINHA APAGARÁ TODOS OS DADOS DO HIVE NO SEU DISPOSITIVO/EMULADOR!
   // USE APENAS PARA DEPURAÇÃO OU QUANDO PRECISA DE UM BANCO DE DADOS LIMPO.
   // await Hive.deleteFromDisk(); // Comente ou remova após a depuração inicial
-  await Hive.deleteFromDisk();
   await Hive.initFlutter();
 
   // Registre todos os adaptadores gerados

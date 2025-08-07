@@ -20,6 +20,7 @@ import '../../core/enums/compra_status_type.dart';
 import 'dart:developer' as developer;
 
 import 'package:lista_compras/presentation/widgets/add_avulso_modal_form.dart';
+import 'package:lista_compras/services/ad_manager.dart';
 
 class ActiveShoppingPage extends StatefulWidget {
   const ActiveShoppingPage({super.key});
@@ -122,7 +123,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
 
   Future<void> _iniciarCompra() async {
     try {
-      // **CORREÇÃO AQUI:** Verificar se já existe uma compra ativa
       final CompraModel? compraExistente = await _compraRepository
           .getCompraAtiva()
           .first; // Obtém o primeiro valor e completa o Future
@@ -136,6 +136,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ),
             ),
           );
+          AdManager.maybeShowInterstitialAd();
         }
         return; // Impede a criação de uma nova compra
       }
@@ -145,6 +146,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Nova compra iniciada!')));
+        AdManager.maybeShowInterstitialAd();
       }
     } catch (e) {
       if (mounted) {
@@ -391,6 +393,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
           );
         }
         print('DEBUG: Fim da finalizacao da compra, sem erros aparentes.');
+        AdManager.maybeShowInterstitialAd();
       } catch (e, stackTrace) {
         print('DEBUG: Erro ao finalizar compra: $e\nStackTrace: $stackTrace');
         if (mounted) {
@@ -465,6 +468,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra cancelada com sucesso!')),
           );
+          AdManager.maybeShowInterstitialAd();
         }
       } catch (e, stackTrace) {
         print('DEBUG: Erro ao cancelar compra: $e\nStackTrace: $stackTrace');
