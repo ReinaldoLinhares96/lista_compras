@@ -1,77 +1,34 @@
 {
   "project_info": {
-    "project_number": "790826930052",
-    "project_id": "lista-de-compras-7f069",
-    "storage_bucket": "lista-de-compras-7f069.firebasestorage.app"
+    "project_number": "56197416209",
+    "project_id": "lista-de-compras-intelig-75b4a",
+    "storage_bucket": "lista-de-compras-intelig-75b4a.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:790826930052:android:324a63f392034dc751d7d1",
+        "mobilesdk_app_id": "1:56197416209:android:ea14416b9de18390fb78b0",
         "android_client_info": {
-          "package_name": "com.example.lista_compras"
+          "package_name": "com.fortisacl.lista_compras_inteligente"
         }
       },
       "oauth_client": [
         {
-          "client_id": "790826930052-p54t9athh5nmvfrc237dsa5m232h8oj4.apps.googleusercontent.com",
+          "client_id": "56197416209-kl9genftld6aar9dn7lh4aeql0hrn2mh.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDluSueEF_WEicYZxmCcTXUdt-v6voMQP0"
+          "current_key": "AIzaSyBbYSFvqYpjCZ4ilhegJ6dqUtDqlHRq__w"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "790826930052-p54t9athh5nmvfrc237dsa5m232h8oj4.apps.googleusercontent.com",
+              "client_id": "56197416209-kl9genftld6aar9dn7lh4aeql0hrn2mh.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "790826930052-eq4qjrds1f7k2h9039otj5rqpkp3crpm.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.listaCompras"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:790826930052:android:f954e845fafb8fdc51d7d1",
-        "android_client_info": {
-          "package_name": "com.example.listacomprasapp"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "790826930052-p54t9athh5nmvfrc237dsa5m232h8oj4.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDluSueEF_WEicYZxmCcTXUdt-v6voMQP0"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "790826930052-p54t9athh5nmvfrc237dsa5m232h8oj4.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "790826930052-eq4qjrds1f7k2h9039otj5rqpkp3crpm.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.listaCompras"
-              }
             }
           ]
         }

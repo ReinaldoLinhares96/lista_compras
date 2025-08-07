@@ -18,7 +18,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.lista_compras"
+    namespace = "com.fortisacl.lista_compras_inteligente" 
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973" // Mantido como corrigido anteriormente
     
@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.lista_compras"
+        applicationId = "com.fortisacl.lista_compras_inteligente" 
         minSdk = 23 // Mantido em 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

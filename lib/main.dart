@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -34,15 +35,22 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa o Google Mobile Ads SDK
-  await MobileAds.instance.initialize();
-
-  // Inicializa o Firebase Core
-  // Certifique-se de que firebase_options.dart está em lib/
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   // Inicialização do Hive e registro de adaptadores
   await Hive.initFlutter();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Se já foi inicializado, ignora o erro
+    if (kDebugMode) {
+      print("Firebase já inicializado: $e");
+    }
+  }
+
+  // Inicializa o Google Mobile Ads SDK (pode ser inicializado mais de uma vez)
+  await MobileAds.instance.initialize();
 
   // Registre todos os adaptadores gerados (verifique se os typeIds são únicos e sequenciais)
   Hive.registerAdapter(ProdutoModelAdapter()); // typeId: 0
