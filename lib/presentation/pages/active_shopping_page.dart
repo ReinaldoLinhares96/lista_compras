@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 // Remova o import do Firebase, se estiver aqui (ex: import 'package:cloud_firestore/cloud_firestore.dart';)
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/presentation/widgets/add_frequent_product_to_cart_modal.dart';
+import 'package:lista_compras/presentation/widgets/product_search_bar.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/models/item_compra_model.dart';
 import '../../data/models/produto_model.dart';
@@ -38,7 +39,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   OrcamentoModel? _orcamentoAtual;
   List<ProdutoModel> _allProdutosFrequentes = [];
   List<ItemCompraModel> _itensNoCarrinho = [];
-
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
+  int _selectedIndex = 0;
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
@@ -52,10 +55,16 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     _listenToCompraAtiva();
     _listenToOrcamento();
     _listenToAllProdutosFrequentes();
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text;
+      });
+    });
   }
 
   @override
   void dispose() {
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -473,19 +482,37 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     double saldoRestante =
         (_orcamentoAtual?.valorMaximo ?? 0.0) -
         (_compraAtiva?.valorTotalCalculado ?? 0.0);
-    final List<ProdutoModel> produtosPrecisaComprar = _allProdutosFrequentes
-        .where((p) {
-          int currentStock = p.quantidadeEmEstoque;
-          int quantityInCart = _itensNoCarrinho
-              .where((item) => item.produtoId == p.id)
-              .fold(0, (sum, item) => sum + item.quantidadeComprada);
+    final List<ProdutoModel> produtosPrecisaComprar =
+        _allProdutosFrequentes
+            .where((p) {
+              int currentStock = p.quantidadeEmEstoque;
+              int quantityInCart = _itensNoCarrinho
+                  .where((item) => item.produtoId == p.id)
+                  .fold(0, (sum, item) => sum + item.quantidadeComprada);
 
-          return (p.quantidadeIdealMes - currentStock - quantityInCart) > 0;
-        })
-        .toList();
+              return (p.quantidadeIdealMes - currentStock - quantityInCart) > 0;
+            })
+            .where(
+              (p) =>
+                  _searchText.isEmpty ||
+                  p.nome.toLowerCase().contains(_searchText.toLowerCase()),
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()),
+          );
 
     final Map<String, List<ItemCompraModel>> itensNoCarrinhoPorCategoria = {};
-    for (var item in _itensNoCarrinho) {
+    for (var item in _itensNoCarrinho.where((item) {
+      if (_searchText.isEmpty) return true;
+      final produtoFreq = _allProdutosFrequentes.firstWhereOrNull(
+        (p) => p.id == item.produtoId,
+      );
+      return produtoFreq?.nome.toLowerCase().contains(
+            _searchText.toLowerCase(),
+          ) ??
+          false;
+    })) {
       String categoriaDesc = 'Itens Avulsos';
       if (item.produtoId != null) {
         final produtoFreq = _allProdutosFrequentes.firstWhereOrNull(
@@ -501,6 +528,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
           .putIfAbsent(categoriaDesc, () => [])
           .add(item);
     }
+
     final sortedItensNoCarrinhoCategories =
         itensNoCarrinhoPorCategoria.keys.toList()..sort();
 
@@ -556,6 +584,17 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               tooltip: 'Carrinho vazio para finalizar',
             ),
         ],
+        bottom: _selectedIndex == 0
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(60.0),
+                child: ProductSearchBar(
+                  controller: _searchController,
+                  onChanged: (text) {
+                    // setState já é chamado no listener do _searchController
+                  },
+                ),
+              )
+            : null,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -69,8 +69,7 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('pt', 'BR'), Locale('en', 'US')],
-      home:
-          const ProductListPage(), // CORREÇÃO AQUI: Define ProductListPage como home
+      home: const ProductListPage(),
     );
   }
 }
