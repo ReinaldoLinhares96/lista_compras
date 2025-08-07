@@ -68,7 +68,6 @@ class CategoriaRepository {
     }
   }
 
-  // AGORA É REMOÇÃO LÓGICA
   Future<void> deleteCategoria(String id) async {
     await _categoriasBox.delete(id);
   }
