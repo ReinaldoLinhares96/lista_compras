@@ -6,7 +6,7 @@ import '../../data/repositories/produto_repository.dart';
 
 class UpdateStockDialog extends StatelessWidget {
   final ProdutoModel product;
-  final ProdutoRepository productRepository; // Recebe o repositório
+  final ProdutoRepository productRepository;
 
   const UpdateStockDialog({
     super.key,
@@ -103,7 +103,6 @@ class UpdateStockDialog extends StatelessWidget {
             }
 
             if (context.mounted) {
-              // Usa context.mounted para verificar se o widget ainda está na árvore
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

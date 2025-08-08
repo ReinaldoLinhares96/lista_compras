@@ -1,34 +1,33 @@
-import 'package:hive/hive.dart'; // Importe o Hive
+import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
-part 'produto_model.g.dart'; // Esta linha será gerada pelo hive_generator
+part 'produto_model.g.dart';
 
-@HiveType(typeId: 0) // typeId deve ser único para cada modelo
+@HiveType(typeId: 0)
 class ProdutoModel extends HiveObject {
-  // Estenda HiveObject
-  @HiveField(0) // Campo do Hive
+  @HiveField(0)
   final String id;
   @HiveField(1)
   final String nome;
   @HiveField(2)
-  int quantidadeIdealMes; // CORREÇÃO AQUI: REMOVIDO 'final'
+  int quantidadeIdealMes;
   @HiveField(3)
   final String categoriaId;
   @HiveField(4)
-  int quantidadeEmEstoque; // Não é final, pode ser alterado
+  int quantidadeEmEstoque;
   @HiveField(5)
-  bool isActive; // Não é final
+  bool isActive;
   @HiveField(6)
-  bool isRemoved; // Não é final
+  bool isRemoved;
   @HiveField(7)
-  DateTime createdAt; // Não é final
+  DateTime createdAt;
   @HiveField(8)
-  DateTime updatedAt; // Não é final
+  DateTime updatedAt;
 
   ProdutoModel({
     String? id,
     required this.nome,
-    required this.quantidadeIdealMes, // Este ainda é um parâmetro required no construtor
+    required this.quantidadeIdealMes,
     required this.categoriaId,
     this.quantidadeEmEstoque = 0,
     this.isActive = true,
@@ -42,8 +41,7 @@ class ProdutoModel extends HiveObject {
   ProdutoModel copyWith({
     String? id,
     String? nome,
-    int?
-    quantidadeIdealMes, // Ainda pode ser usado no copyWith para criar uma nova instância
+    int? quantidadeIdealMes,
     String? categoriaId,
     int? quantidadeEmEstoque,
     bool? isActive,

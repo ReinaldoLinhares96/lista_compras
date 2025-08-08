@@ -8,20 +8,19 @@ class CompraStatusModel extends HiveObject {
   String id;
   @HiveField(1)
   String descricao;
-  @HiveField(2) // NOVO CAMPO
+  @HiveField(2)
   bool isActive;
-  @HiveField(3) // NOVO CAMPO
+  @HiveField(3)
   bool isRemoved;
 
   CompraStatusModel({
     required this.id,
     required this.descricao,
-    this.isActive = true, // NOVO PARÂMETRO
-    this.isRemoved = false, // NOVO PARÂMETRO
+    this.isActive = true,
+    this.isRemoved = false,
   });
 
   CompraStatusModel copyWith({
-    // Adicionado copyWith para este modelo
     String? id,
     String? descricao,
     bool? isActive,

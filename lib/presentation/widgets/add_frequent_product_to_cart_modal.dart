@@ -34,8 +34,8 @@ class _AddFrequentProductToCartModalState
   late TextEditingController _precoController;
   late int _quantidadeNecessaria;
   bool _isQuantidadeSugerida = true;
-  int? _finalQuantity; // Pode ser nulo
-  double? _finalPrice; // Pode ser nulo
+  int? _finalQuantity;
+  double? _finalPrice;
 
   @override
   void initState() {
@@ -51,8 +51,7 @@ class _AddFrequentProductToCartModalState
     );
     _precoController = TextEditingController();
 
-    _finalQuantity =
-        _quantidadeNecessaria; // Inicializa _finalQuantity com a quantidade sugerida
+    _finalQuantity = _quantidadeNecessaria;
 
     _precoController.addListener(() {
       final value = double.tryParse(_precoController.text.replaceAll(',', '.'));
@@ -79,7 +78,6 @@ class _AddFrequentProductToCartModalState
   }
 
   Future<void> _addItemToCart() async {
-    // CORREÇÃO: Validação estrita para valores maiores que zero
     if (_finalQuantity == null ||
         _finalQuantity! <= 0 ||
         _finalPrice == null ||
@@ -158,8 +156,7 @@ class _AddFrequentProductToCartModalState
                         _finalQuantity = _quantidadeNecessaria;
                       } else {
                         _quantidadeController.clear();
-                        _finalQuantity =
-                            null; // Definir como null se não for sugerida e o campo estiver vazio
+                        _finalQuantity = null;
                       }
                     });
                   },
@@ -183,7 +180,6 @@ class _AddFrequentProductToCartModalState
               Text(
                 'Quantidade ideal: ${widget.product.quantidadeIdealMes.toString()}',
               ),
-              // CORREÇÃO: Verificação de nulidade antes da soma
               if (_finalQuantity != null &&
                   (_finalQuantity! + widget.product.quantidadeEmEstoque >
                       widget.product.quantidadeIdealMes))

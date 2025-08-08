@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
-import 'package:lista_compras/presentation/widgets/edit_categoria_modal.dart'; // Importe o modal de edição
+import 'package:lista_compras/presentation/widgets/edit_categoria_modal.dart';
 
 class CategoriaManagementPage extends StatefulWidget {
   const CategoriaManagementPage({super.key});

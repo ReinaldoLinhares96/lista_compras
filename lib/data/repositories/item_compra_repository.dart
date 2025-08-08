@@ -15,7 +15,6 @@ class ItemCompraRepository {
     await _itensCompraBox.put(item.id, item);
   }
 
-  // NOVO: Método para obter itens da compra ATIVA (filtrando por ativos e não removidos)
   Stream<List<ItemCompraModel>> getItensFromActiveCompra(String compraId) {
     return _itensCompraBox
         .watch()
@@ -43,11 +42,9 @@ class ItemCompraRepository {
         );
   }
 
-  // NOVO: Método para obter itens de uma compra HISTÓRICA (incluindo os logicamente removidos)
   Future<List<ItemCompraModel>> getItensFromHistoricalCompra(
     String compraId,
   ) async {
-    // Retorna todos os itens associados a esta compra, independentemente do status isActive/isRemoved
     final items = _itensCompraBox.values
         .where((item) => item.compraId == compraId)
         .toList();
@@ -55,8 +52,6 @@ class ItemCompraRepository {
     return items;
   }
 
-  // NOVO: Stream para observar mudanças nos itens de uma compra específica
-  // Isso é crucial para a ActiveShoppingPage reagir a adições/remoções
   Stream<List<ItemCompraModel>> watchItensCompra(String compraId) {
     return _itensCompraBox
         .watch()
@@ -73,27 +68,24 @@ class ItemCompraRepository {
   }
 
   Future<void> updateItemCompra(ItemCompraModel item) async {
-    // Usar .put() diretamente, mas garantir que o objeto seja o existente se possível
     final existingItem = _itensCompraBox.get(item.id);
     if (existingItem != null) {
       existingItem.nomeProduto = item.nomeProduto;
       existingItem.quantidadeComprada = item.quantidadeComprada;
       existingItem.precoUnitario = item.precoUnitario;
-      existingItem.subtotal =
-          item.subtotal; // Subtotal pode ser recalculado no modelo
+      existingItem.subtotal = item.subtotal;
       existingItem.ehAvulso = item.ehAvulso;
       existingItem.adicionadoNaLista = item.adicionadoNaLista;
       existingItem.isActive = item.isActive;
       existingItem.isRemoved = item.isRemoved;
       existingItem.createdAt = item.createdAt;
-      existingItem.updatedAt = DateTime.now(); // Atualiza data de modificação
+      existingItem.updatedAt = DateTime.now();
       await existingItem.save();
     } else {
       await _itensCompraBox.put(item.id, item);
     }
   }
 
-  // NOVO: Método para marcar um item como logicamente removido
   Future<void> markItemAsRemoved(String itemId) async {
     final item = _itensCompraBox.get(itemId);
     if (item != null) {

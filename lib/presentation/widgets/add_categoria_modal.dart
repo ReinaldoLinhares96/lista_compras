@@ -26,15 +26,7 @@ class _AddCategoriaModalState extends State<AddCategoriaModal> {
   }
 
   Future<void> _addCategoria() async {
-    if (kDebugMode) {
-      print('DEBUG: entrou em _addCategoriaModal.');
-    }
     if (_descricaoController.text.isEmpty) {
-      if (kDebugMode) {
-        print(
-          'DEBUG: entrou em _addCategoriaModal. descricao: ${_descricaoController.text.toString()}',
-        );
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, preencha a descrição.')),
       );
@@ -42,19 +34,10 @@ class _AddCategoriaModalState extends State<AddCategoriaModal> {
     }
 
     try {
-      // Validação de duplicidade por descrição (case-insensitive)
       final existingCategory = await _repository.getCategoriaByDescricao(
         _descricaoController.text.toLowerCase(),
       );
-      if (kDebugMode) {
-        print(
-          'DEBUG: existingCategory: ${existingCategory?.descricao.toString()}',
-        );
-      }
       if (existingCategory != null) {
-        if (kDebugMode) {
-          print('Já existe uma categoria com essa descrição.');
-        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Já existe uma categoria com essa descrição.'),
@@ -64,12 +47,6 @@ class _AddCategoriaModalState extends State<AddCategoriaModal> {
       }
 
       final newCategoria = CategoriaModel(descricao: _descricaoController.text);
-      if (kDebugMode) {
-        print(
-          'DEBUG: criado nova categoria: ${newCategoria.descricao.toString()}',
-        );
-      }
-      // Não precisamos mais chamar initializeDefaultCategorias, pois as categorias serão criadas pelo usuário
       await _repository.addCategoria(newCategoria);
 
       if (mounted) {
@@ -78,13 +55,10 @@ class _AddCategoriaModalState extends State<AddCategoriaModal> {
             content: Text('Categoria "${newCategoria.descricao}" adicionada!'),
           ),
         );
-        Navigator.pop(context); // Fecha o modal
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        if (kDebugMode) {
-          print('DEBUG: Erro ao adicionar categoria: $e');
-        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao adicionar categoria: $e')),
         );

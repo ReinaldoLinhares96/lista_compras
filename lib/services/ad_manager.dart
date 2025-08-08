@@ -13,12 +13,9 @@ class AdManager {
       ? 'ca-app-pub-3940256099942544/1033173712' // ID de teste do Google
       : 'SEU_ID_DE_BLOCO_INTERSTICIAL_REAL'; // SUBSTITUA EM PRODUÇÃO
 
-  // Contador de interações para controlar a frequência
   static int _interactionCount = 0;
-  static const int INTERACTION_THRESHOLD =
-      5; // Mostrar anúncio a cada 5 interações
+  static const int INTERACTION_THRESHOLD = 10;
 
-  // Carregar o anúncio intersticial
   static void loadInterstitialAd() {
     if (_isInterstitialAdLoaded) return;
 
@@ -35,13 +32,13 @@ class AdManager {
                 onAdDismissedFullScreenContent: (ad) {
                   ad.dispose();
                   _isInterstitialAdLoaded = false;
-                  loadInterstitialAd(); // Carregar o próximo anúncio
+                  loadInterstitialAd();
                 },
                 onAdFailedToShowFullScreenContent: (ad, err) {
                   debugPrint('Interstitial Ad failed to show: $err');
                   ad.dispose();
                   _isInterstitialAdLoaded = false;
-                  loadInterstitialAd(); // Tentar recarregar
+                  loadInterstitialAd();
                 },
               );
         },
@@ -54,22 +51,20 @@ class AdManager {
     );
   }
 
-  // Exibir o anúncio intersticial se estiver carregado e o limite for atingido
   static void maybeShowInterstitialAd() async {
     _interactionCount++;
     if (_interactionCount >= INTERACTION_THRESHOLD) {
       if (_isInterstitialAdLoaded && _interstitialAd != null) {
         _interstitialAd?.show();
-        _isInterstitialAdLoaded = false; // Resetar o estado
-        _interactionCount = 0; // Resetar o contador
+        _isInterstitialAdLoaded = false;
+        _interactionCount = 0;
       } else {
         debugPrint('Interstitial Ad not ready to show. Loading a new one.');
-        loadInterstitialAd(); // Tentar carregar se não estiver pronto
+        loadInterstitialAd();
       }
     }
   }
 
-  // Método para descartar o anúncio
   static void disposeAd() {
     _interstitialAd?.dispose();
     _interstitialAd = null;

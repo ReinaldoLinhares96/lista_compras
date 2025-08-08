@@ -14,7 +14,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
       appBar: AppBar(
         title: const Text('Seja Premium!'),
         centerTitle: true,
-        backgroundColor: Colors.deepPurple.shade100, // Cor para diferenciar
+        backgroundColor: Colors.deepPurple.shade100,
       ),
       body: const Center(
         child: Padding(
@@ -33,8 +33,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                 style: TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
-              // Futuramente, botões de compra (assinaturas, etc.)
-              CircularProgressIndicator(), // Placeholder de carregamento
+              CircularProgressIndicator(),
               Text('Carregando opções de compra...'),
             ],
           ),

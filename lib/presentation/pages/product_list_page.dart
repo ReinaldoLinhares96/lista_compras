@@ -51,7 +51,7 @@ class _ProductListPageState extends State<ProductListPage> {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
     _loadAuxiliaryData();
-
+    _createDefaultCategory();
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text;
@@ -89,6 +89,14 @@ class _ProductListPageState extends State<ProductListPage> {
     });
   }
 
+  void _createDefaultCategory() async {
+    if (_categoriasDescricao.isEmpty) {
+      final categoriaDefault = CategoriaModel(descricao: "Alimentos");
+
+      await _categoriaRepository.addCategoria(categoriaDefault);
+    }
+  }
+
   void _handleEditProduct(ProdutoModel product) async {
     await showModalBottomSheet(
       context: context,
@@ -100,10 +108,7 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Future<void> _handleDeleteProduct(ProdutoModel product) async {
-    // Não é mais delete físico, é exclusão lógica via repositório
-    await _produtoRepository.deleteProduto(
-      product.id,
-    ); // Chamada para remoção lógica
+    await _produtoRepository.deleteProduto(product.id);
   }
 
   void _handleUpdateStock(ProdutoModel product) async {
@@ -162,10 +167,8 @@ class _ProductListPageState extends State<ProductListPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(
-                  Icons.history,
-                ), // NOVO: Ícone para Histórico
-                title: const Text('Histórico de Compras'), // NOVO: Título
+                leading: const Icon(Icons.history),
+                title: const Text('Histórico de Compras'),
                 onTap: () {
                   Navigator.pop(context);
                   AdManager.maybeShowInterstitialAd();
@@ -238,9 +241,7 @@ class _ProductListPageState extends State<ProductListPage> {
                 preferredSize: const Size.fromHeight(60.0),
                 child: ProductSearchBar(
                   controller: _searchController,
-                  onChanged: (text) {
-                    // setState já é chamado no listener do _searchController
-                  },
+                  onChanged: (text) {},
                 ),
               )
             : null,

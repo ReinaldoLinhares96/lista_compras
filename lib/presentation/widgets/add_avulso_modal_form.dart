@@ -113,13 +113,11 @@ class _AddAvulsoModalFormState extends State<AddAvulsoModalForm> {
                   return;
                 }
 
-                // CORREÇÃO: Validação estrita para valores maiores que zero
                 if (nome.isEmpty ||
                     _finalQuantity == null ||
-                    _finalQuantity! <= 0 || // Deve ser maior que zero
+                    _finalQuantity! <= 0 ||
                     _finalPrice == null ||
                     _finalPrice! <= 0) {
-                  // Deve ser maior que zero
                   widget.showSnackbar(
                     'Preencha todos os campos corretamente com valores maiores que zero.',
                   );

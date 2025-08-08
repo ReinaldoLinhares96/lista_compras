@@ -1,28 +1,28 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
-part 'compra_model.g.dart'; // Será gerado
+part 'compra_model.g.dart';
 
-@HiveType(typeId: 3) // typeId único
+@HiveType(typeId: 3)
 class CompraModel extends HiveObject {
   @HiveField(0)
   final String id;
   @HiveField(1)
   final DateTime dataHoraInicio;
   @HiveField(2)
-  DateTime? dataHoraFim; // Não é final, pode ser alterado
+  DateTime? dataHoraFim;
   @HiveField(3)
-  double valorTotalCalculado; // Não é final, pode ser alterado
+  double valorTotalCalculado;
   @HiveField(4)
-  String compraStatusId; // CORREÇÃO AQUI: REMOVIDO 'final'
+  String compraStatusId;
   @HiveField(5)
-  bool isActive; // Não é final, pode ser alterado
+  bool isActive;
   @HiveField(6)
-  bool isRemoved; // Não é final, pode ser alterado
+  bool isRemoved;
   @HiveField(7)
-  DateTime createdAt; // Não é final, pode ser alterado
+  DateTime createdAt;
   @HiveField(8)
-  DateTime updatedAt; // Não é final, pode ser alterado
+  DateTime updatedAt;
 
   CompraModel({
     String? id,
@@ -49,16 +49,12 @@ class CompraModel extends HiveObject {
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
-    // Usamos o construtor, que espera um valor para compraStatusId.
-    // Garantimos que ele não é nulo.
     return CompraModel(
       id: id ?? this.id,
       dataHoraInicio: dataHoraInicio ?? this.dataHoraInicio,
       dataHoraFim: dataHoraFim ?? this.dataHoraFim,
       valorTotalCalculado: valorTotalCalculado ?? this.valorTotalCalculado,
-      compraStatusId:
-          compraStatusId ??
-          this.compraStatusId, // Passa o valor existente ou novo
+      compraStatusId: compraStatusId ?? this.compraStatusId,
       isActive: isActive ?? this.isActive,
       isRemoved: isRemoved ?? this.isRemoved,
       createdAt: createdAt ?? this.createdAt,

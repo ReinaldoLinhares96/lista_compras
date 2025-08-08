@@ -21,8 +21,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // CUIDADO: ESTA LINHA APAGARÁ TODOS OS DADOS DO HIVE NO SEU DISPOSITIVO/EMULADOR!
-  // USE APENAS PARA DEPURAÇÃO OU QUANDO PRECISA DE UM BANCO DE DADOS LIMPO.
   // await Hive.deleteFromDisk(); // Comente ou remova após a depuração inicial
   await Hive.initFlutter();
 
@@ -32,9 +30,7 @@ void main() async {
   Hive.registerAdapter(CompraModelAdapter());
   Hive.registerAdapter(ItemCompraModelAdapter());
   Hive.registerAdapter(CompraStatusModelAdapter());
-  Hive.registerAdapter(
-    OrcamentoModelAdapter(),
-  ); // Não esquecer do OrcamentoModel
+  Hive.registerAdapter(OrcamentoModelAdapter());
 
   // ABRA AS CAIXAS (BOXES) QUE VOCÊ VAI USAR NO SEU APLICATIVO
   await Hive.openBox<ProdutoModel>('produtosBox');
