@@ -9,7 +9,7 @@ import 'package:rxdart/rxdart.dart';
 
 class CompraRepository {
   late Box<CompraModel> _comprasBox;
-  late Box<CompraStatusModel> _compraStatusBox; // Referência à caixa de status
+  late Box<CompraStatusModel> _compraStatusBox;
 
   CompraRepository() {
     _comprasBox = Hive.box<CompraModel>('comprasBox');
@@ -17,10 +17,9 @@ class CompraRepository {
   }
 
   Future<CompraModel> iniciarNovaCompra() async {
-    // Buscar o CompraStatusModel para 'Ativa' pelo ID numérico
     final CompraStatusModel? ativaStatusModel = _compraStatusBox.get(
       CompraStatusType.ativa.value.toString(),
-    ); // ATUALIZADO
+    );
 
     if (ativaStatusModel == null) {
       throw Exception(
@@ -28,7 +27,6 @@ class CompraRepository {
       );
     }
 
-    // Verificar se já existe uma compra ativa ANTES de criar uma nova
     final CompraModel? compraExistente = await getCompraAtiva().first;
     if (compraExistente != null) {
       throw Exception(
@@ -48,10 +46,9 @@ class CompraRepository {
   }
 
   Stream<CompraModel?> getCompraAtiva() {
-    // Buscar o CompraStatusModel para 'Ativa' pelo ID numérico
     final CompraStatusModel? ativaStatusModel = _compraStatusBox.get(
       CompraStatusType.ativa.value.toString(),
-    ); // ATUALIZADO
+    );
 
     final CompraModel? initialActiveCompra = (ativaStatusModel == null)
         ? null
@@ -65,9 +62,8 @@ class CompraRepository {
     return _comprasBox
         .watch()
         .map((event) {
-          // Revalidar o CompraStatusModel para 'Ativa' a cada evento de stream (se ele puder mudar)
           final CompraStatusModel? currentAtivaStatusModel = _compraStatusBox
-              .get(CompraStatusType.ativa.value.toString()); // ATUALIZADO
+              .get(CompraStatusType.ativa.value.toString());
 
           if (currentAtivaStatusModel == null) {
             return null;
@@ -86,7 +82,7 @@ class CompraRepository {
 
   Future<void> updateCompra(CompraModel compra) async {
     await _comprasBox.put(compra.id, compra);
-    compra.save(); // Salva as alterações
+    compra.save();
   }
 
   Future<void> finalizarCompra(String compraId, double valorFinal) async {
@@ -152,8 +148,6 @@ class CompraRepository {
             if (statusId != null && statusId.isNotEmpty) {
               matchesStatus = compra.compraStatusId == statusId;
             } else {
-              // Se nenhum status específico foi pedido, inclua APENAS Finalizada ou Cancelada.
-              // Você precisará dos IDs de 'Finalizada' e 'Cancelada' aqui.
               final String? finalizadaStatusId = _compraStatusBox.values
                   .firstWhereOrNull(
                     (s) => s.id == CompraStatusType.finalizada.value.toString(),
@@ -170,18 +164,15 @@ class CompraRepository {
                   compra.compraStatusId == canceladaStatusId);
             }
 
-            // **CORREÇÃO AQUI:** Usar dataHoraFim para a filtragem de datas, se disponível
             final DateTime? dateToFilterBy =
-                compra.dataHoraFim ??
-                compra.dataHoraInicio; // Preferir dataFim, se não, dataInicio
-
+                compra.dataHoraFim ?? compra.dataHoraInicio;
             bool matchesDate = true;
             if (startDate != null && dateToFilterBy != null) {
               matchesDate =
                   matchesDate &&
                   (dateToFilterBy.isAfter(
                         startDate.subtract(const Duration(days: 1)),
-                      ) || // Para incluir o dia inteiro inicial
+                      ) ||
                       dateToFilterBy.isAtSameMomentAs(startDate));
             }
             if (endDate != null && dateToFilterBy != null) {
@@ -189,32 +180,25 @@ class CompraRepository {
                   matchesDate &&
                   (dateToFilterBy.isBefore(
                         endDate.add(const Duration(days: 1)),
-                      ) || // Para incluir o dia inteiro final
+                      ) ||
                       dateToFilterBy.isAtSameMomentAs(endDate));
             }
 
-            // Filtro por valor total (mantido como estava)
             bool matchesMinTotal =
                 minTotal == null || compra.valorTotalCalculado >= minTotal;
             bool matchesMaxTotal =
                 maxTotal == null || compra.valorTotalCalculado <= maxTotal;
 
-            // Retorna verdadeiro se todas as condições forem atendidas
             return matchesStatus &&
                 matchesDate &&
                 matchesMinTotal &&
                 matchesMaxTotal;
           }).toList();
 
-          // **CORREÇÃO AQUI:** Ordenar pela data mais relevante (dataHoraFim)
           filteredCompras.sort((a, b) {
-            final dateA =
-                a.dataHoraFim ??
-                a.dataHoraInicio; // Prefere dataFim para ordenação
-            final dateB =
-                b.dataHoraFim ??
-                b.dataHoraInicio; // Prefere dataFim para ordenação
-            return dateB.compareTo(dateA); // Do mais recente para o mais antigo
+            final dateA = a.dataHoraFim ?? a.dataHoraInicio;
+            final dateB = b.dataHoraFim ?? b.dataHoraInicio;
+            return dateB.compareTo(dateA);
           });
 
           return filteredCompras;
@@ -255,7 +239,6 @@ class CompraRepository {
                 matchesMinTotal &&
                 matchesMaxTotal;
           }).toList()..sort((a, b) {
-            // Ordenação para o startWith também
             final dateA = a.dataHoraFim ?? a.dataHoraInicio;
             final dateB = b.dataHoraFim ?? b.dataHoraInicio;
             return dateB.compareTo(dateA);

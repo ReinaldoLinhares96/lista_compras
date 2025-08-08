@@ -1,9 +1,4 @@
-enum CompraStatusType {
-  ativa, // 0
-  finalizada, // 1
-  cancelada, // 2
-  // Adicione outros status conforme necessário
-}
+enum CompraStatusType { ativa, finalizada, cancelada }
 
 extension CompraStatusTypeExtension on CompraStatusType {
   int get value => index;

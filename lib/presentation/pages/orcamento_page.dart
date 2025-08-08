@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/models/orcamento_model.dart';
 import '../../data/repositories/orcamento_repository.dart';
-// Remova qualquer import do Firestore, se estiver aqui (ex: import 'package:cloud_firestore/cloud_firestore.dart';)
 
 class OrcamentoPage extends StatefulWidget {
   const OrcamentoPage({super.key});
@@ -17,7 +16,6 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
   @override
   void initState() {
     super.initState();
-    // Escuta as mudanças no orçamento para manter o campo atualizado
     _orcamentoRepository.getOrcamento().listen((orcamento) {
       if (_orcamentoController.text !=
           orcamento.valorMaximo.toStringAsFixed(2).replaceAll('.', ',')) {
@@ -53,7 +51,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Orçamento atualizado com sucesso!')),
         );
-        FocusScope.of(context).unfocus(); // Fecha o teclado
+        FocusScope.of(context).unfocus();
       }
     } catch (e) {
       if (mounted) {
@@ -81,8 +79,6 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: StreamBuilder<OrcamentoModel>(
-                  // O OrcamentoRepository já retorna OrcamentoModel no Stream.
-                  // Certifique-se de que o orcamentoDocId existe no OrcamentoRepository
                   stream: _orcamentoRepository.getOrcamento(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -96,9 +92,6 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
                       );
                     }
 
-                    // Se a stream pode retornar nulo (ex: orElse no repositório), lide com isso.
-                    // O OrcamentoRepository foi ajustado para retornar OrcamentoModel(id: ..., valorMaximo: 0.0)
-                    // se não encontrar o orçamento, então snapshot.data não deve ser nulo aqui.
                     final OrcamentoModel orcamento = snapshot.data!;
 
                     return Column(

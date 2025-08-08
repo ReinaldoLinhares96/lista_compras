@@ -3,24 +3,21 @@
 import 'package:flutter/material.dart';
 import '../../data/models/produto_model.dart';
 
-// Define um typedef para os callbacks de ação nos produtos
 typedef ProductActionCallback = void Function(ProdutoModel product);
 
 class ProductCategoryPanel extends StatefulWidget {
   final String categoryName;
-  final List<ProdutoModel>
-  productsInCategory; // NOVO: Propriedade para símbolos
+  final List<ProdutoModel> productsInCategory;
   final ProductActionCallback onEditProduct;
   final ProductActionCallback onDeleteProduct;
   final ProductActionCallback onUpdateStock;
-  final bool isExpanded; // Controla o estado de expansão
-  final ValueChanged<bool>
-  onExpansionChanged; // Notifica o pai sobre a expansão
+  final bool isExpanded;
+  final ValueChanged<bool> onExpansionChanged;
 
   const ProductCategoryPanel({
     super.key,
     required this.categoryName,
-    required this.productsInCategory, // NOVO: Requisito
+    required this.productsInCategory,
     required this.onEditProduct,
     required this.onDeleteProduct,
     required this.onUpdateStock,
@@ -37,7 +34,7 @@ class _ProductCategoryPanelState extends State<ProductCategoryPanel> {
   Widget build(BuildContext context) {
     return ExpansionPanelList(
       expansionCallback: (panelIndex, isExpanded) {
-        widget.onExpansionChanged(isExpanded); // Notifica o pai
+        widget.onExpansionChanged(isExpanded);
       },
       children: [
         ExpansionPanel(
@@ -127,14 +124,12 @@ class _ProductCategoryPanelState extends State<ProductCategoryPanel> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.inventory, color: Colors.blue),
-                        onPressed: () =>
-                            widget.onUpdateStock(produto), // Chama o callback
+                        onPressed: () => widget.onUpdateStock(produto),
                         tooltip: 'Atualizar Estoque',
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit),
-                        onPressed: () =>
-                            widget.onEditProduct(produto), // Chama o callback
+                        onPressed: () => widget.onEditProduct(produto),
                         tooltip: 'Editar Produto',
                       ),
                       IconButton(
@@ -165,7 +160,7 @@ class _ProductCategoryPanelState extends State<ProductCategoryPanel> {
                             ),
                           );
                           if (confirm == true) {
-                            widget.onDeleteProduct(produto); // Chama o callback
+                            widget.onDeleteProduct(produto);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(

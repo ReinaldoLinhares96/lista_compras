@@ -1,9 +1,9 @@
 // ignore_for_file: depend_on_referenced_packages, unnecessary_to_list_in_spreads
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Para formatar datas
-import 'package:lista_compras/data/models/compra_status_model.dart'; // Para o dropdown de status
-import 'package:lista_compras/data/repositories/compra_status_repository.dart'; // Para obter os status
+import 'package:intl/intl.dart';
+import 'package:lista_compras/data/models/compra_status_model.dart';
+import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 
 // Definição do modelo de dados para os filtros (para retornar do modal)
 class PurchaseFilterData {
@@ -23,7 +23,7 @@ class PurchaseFilterData {
 }
 
 class PurchaseHistoryFilterModal extends StatefulWidget {
-  final PurchaseFilterData? initialFilters; // Filtros atuais para pré-preencher
+  final PurchaseFilterData? initialFilters;
 
   const PurchaseHistoryFilterModal({super.key, this.initialFilters});
 
@@ -89,7 +89,6 @@ class _PurchaseHistoryFilterModalState
             ),
             const SizedBox(height: 20),
 
-            // Filtro por Status
             StreamBuilder<List<CompraStatusModel>>(
               stream: _compraStatusRepository.getCompraStatus(),
               builder: (context, snapshot) {
@@ -104,7 +103,7 @@ class _PurchaseHistoryFilterModalState
                     const DropdownMenuItem(
                       value: null,
                       child: Text('Todos os Status'),
-                    ), // Opção para remover filtro
+                    ),
                     ...statuses
                         .map(
                           (s) => DropdownMenuItem(
@@ -124,7 +123,6 @@ class _PurchaseHistoryFilterModalState
             ),
             const SizedBox(height: 20),
 
-            // Filtro por Data
             Text(
               'Filtrar por Data:',
               style: Theme.of(context).textTheme.titleMedium,
@@ -168,9 +166,7 @@ class _PurchaseHistoryFilterModalState
                       final pickedDate = await showDatePicker(
                         context: context,
                         initialDate: _selectedEndDate ?? DateTime.now(),
-                        firstDate:
-                            _selectedStartDate ??
-                            DateTime(2000), // Deve ser após a data inicial
+                        firstDate: _selectedStartDate ?? DateTime(2000),
                         lastDate: DateTime.now(),
                       );
                       if (pickedDate != null) {
@@ -194,7 +190,6 @@ class _PurchaseHistoryFilterModalState
             ),
             const SizedBox(height: 20),
 
-            // Filtro por Valor Total
             Text(
               'Filtrar por Valor Total (R\$):',
               style: Theme.of(context).textTheme.titleMedium,
@@ -231,16 +226,12 @@ class _PurchaseHistoryFilterModalState
             ),
             const SizedBox(height: 30),
 
-            // Botões de Ação
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(
-                      context,
-                      null,
-                    ); // Retorna null para indicar que o filtro foi limpo
+                    Navigator.pop(context, null);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
                   child: const Text('Limpar Filtros'),

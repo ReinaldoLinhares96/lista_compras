@@ -10,32 +10,32 @@ class OrcamentoModel extends HiveObject {
   final double valorMaximo;
   @HiveField(2)
   DateTime updatedAt;
-  @HiveField(3) // NOVO CAMPO
+  @HiveField(3)
   bool isActive;
-  @HiveField(4) // NOVO CAMPO
+  @HiveField(4)
   bool isRemoved;
 
   OrcamentoModel({
     required this.id,
     required this.valorMaximo,
     DateTime? updatedAt,
-    this.isActive = true, // NOVO PARÂMETRO
-    this.isRemoved = false, // NOVO PARÂMETRO
+    this.isActive = true,
+    this.isRemoved = false,
   }) : updatedAt = updatedAt ?? DateTime.now();
 
   OrcamentoModel copyWith({
     String? id,
     double? valorMaximo,
     DateTime? updatedAt,
-    bool? isActive, // NOVO PARÂMETRO
-    bool? isRemoved, // NOVO PARÂMETRO
+    bool? isActive,
+    bool? isRemoved,
   }) {
     return OrcamentoModel(
       id: id ?? this.id,
       valorMaximo: valorMaximo ?? this.valorMaximo,
       updatedAt: updatedAt ?? this.updatedAt,
-      isActive: isActive ?? this.isActive, // NOVO NO COPYWITH
-      isRemoved: isRemoved ?? this.isRemoved, // NOVO NO COPYWITH
+      isActive: isActive ?? this.isActive,
+      isRemoved: isRemoved ?? this.isRemoved,
     );
   }
 }

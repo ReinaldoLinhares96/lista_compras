@@ -16,13 +16,12 @@ class CategoriaRepository {
   }
 
   Stream<List<CategoriaModel>> getCategorias() {
-    // Filtrar apenas categorias ativas
     return _categoriasBox
         .watch()
         .map((event) {
           final allCategorias = _categoriasBox.values
               .where((c) => c.isActive && !c.isRemoved)
-              .toList(); // FILTRO AQUI
+              .toList();
           allCategorias.sort(
             (a, b) =>
                 a.descricao.toLowerCase().compareTo(b.descricao.toLowerCase()),
@@ -33,21 +32,14 @@ class CategoriaRepository {
           _categoriasBox.values
               .where((c) => c.isActive && !c.isRemoved)
               .toList(),
-        ); // Emissão inicial filtrada
+        );
   }
 
   Future<void> addCategoria(CategoriaModel categoria) async {
-    if (kDebugMode) {
-      print('DEBUG: entrou em addCategoria. Categoria: ${categoria}');
-    }
     await _categoriasBox.put(categoria.id, categoria);
-    if (kDebugMode) {
-      print('DEBUG: finalizou em addCategoria. Categoria: ${categoria}');
-    }
   }
 
   Future<CategoriaModel?> getCategoriaByDescricao(String descricao) async {
-    // Reutilizando a extensão IterableExtension<T> que já está no seu projeto
     return _categoriasBox.values.firstWhereOrNull(
       (c) =>
           c.descricao.toLowerCase() == descricao.toLowerCase() &&
@@ -68,7 +60,6 @@ class CategoriaRepository {
     }
   }
 
-  // AGORA É REMOÇÃO LÓGICA
   Future<void> deleteCategoria(String id) async {
     await _categoriasBox.delete(id);
   }

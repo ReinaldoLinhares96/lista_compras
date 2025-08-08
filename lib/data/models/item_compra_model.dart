@@ -22,7 +22,7 @@ class ItemCompraModel extends HiveObject {
   @HiveField(7)
   bool ehAvulso;
   @HiveField(8)
-  bool adicionadoNaLista; // Nome correto da propriedade
+  bool adicionadoNaLista;
   @HiveField(9)
   DateTime createdAt;
   @HiveField(10)
@@ -41,7 +41,7 @@ class ItemCompraModel extends HiveObject {
     required this.precoUnitario,
     double? subtotal,
     bool? ehAvulso,
-    bool? adicionadoNaLista, // Nome correto no parâmetro do construtor
+    bool? adicionadoNaLista,
     bool? isActive,
     bool? isRemoved,
     DateTime? createdAt,
@@ -49,8 +49,7 @@ class ItemCompraModel extends HiveObject {
   }) : id = id ?? const Uuid().v4(),
        subtotal = subtotal ?? (quantidadeComprada * precoUnitario),
        ehAvulso = ehAvulso ?? false,
-       adicionadoNaLista =
-           adicionadoNaLista ?? false, // Usando o nome correto aqui
+       adicionadoNaLista = adicionadoNaLista ?? false,
        isActive = isActive ?? true,
        isRemoved = isRemoved ?? false,
        createdAt = createdAt ?? DateTime.now(),
@@ -65,7 +64,7 @@ class ItemCompraModel extends HiveObject {
     double? precoUnitario,
     double? subtotal,
     bool? ehAvulso,
-    bool? adicionadoNaLista, // Nome correto no parâmetro do copyWith
+    bool? adicionadoNaLista,
     bool? isActive,
     bool? isRemoved,
     DateTime? createdAt,
@@ -84,8 +83,7 @@ class ItemCompraModel extends HiveObject {
       precoUnitario: newPrecoUnitario,
       subtotal: subtotal ?? calculatedSubtotal,
       ehAvulso: ehAvulso ?? this.ehAvulso,
-      adicionadoNaLista:
-          adicionadoNaLista ?? this.adicionadoNaLista, // CORRIGIDO AQUI
+      adicionadoNaLista: adicionadoNaLista ?? this.adicionadoNaLista,
       isActive: isActive ?? this.isActive,
       isRemoved: isRemoved ?? this.isRemoved,
       createdAt: createdAt ?? this.createdAt,

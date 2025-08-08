@@ -39,7 +39,6 @@ class _EditCategoriaModalState extends State<EditCategoriaModal> {
     }
 
     try {
-      // Validação de duplicidade (exceto para o próprio item que está sendo editado)
       final existingCategory = await _repository.getCategoriaByDescricao(
         _descricaoController.text.toLowerCase(),
       );
@@ -55,7 +54,7 @@ class _EditCategoriaModalState extends State<EditCategoriaModal> {
       }
 
       final updatedCategoria = CategoriaModel(
-        id: widget.categoria.id, // Mantém o ID original
+        id: widget.categoria.id,
         descricao: _descricaoController.text,
       );
 
@@ -69,7 +68,7 @@ class _EditCategoriaModalState extends State<EditCategoriaModal> {
             ),
           ),
         );
-        Navigator.pop(context); // Fecha o modal
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {

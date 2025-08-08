@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print, depend_on_referenced_packages
 
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/produto_model.dart';
 import 'package:rxdart/rxdart.dart';
@@ -21,8 +20,6 @@ class ProdutoRepository {
   }
 
   Stream<List<ProdutoModel>> getActiveProdutos() {
-    // CORREÇÃO: Usar .values.toList() para pegar uma nova lista a cada evento
-    // E garantir que o filtro e ordenação são aplicados sobre os valores ATUAIS da box.
     return _produtosBox
         .watch()
         .map((event) {
@@ -34,40 +31,22 @@ class ProdutoRepository {
           );
           return allProdutos;
         })
-        .startWith(
-          _produtosBox.values.where((p) => !p.isRemoved).toList(),
-        ); // Emitir o estado inicial filtrado
+        .startWith(_produtosBox.values.where((p) => !p.isRemoved).toList());
   }
 
   Future<void> updateProduto(ProdutoModel produto) async {
-    try {
-      await _produtosBox.put(produto.id, produto);
-    } catch (e, stacktrace) {
-      print(
-        'Erro ao atualizar produto ${produto.nome} no Hive: $e\n$stacktrace',
-      );
-      rethrow;
-    }
+    await _produtosBox.put(produto.id, produto);
   }
 
   Future<void> updateQuantidadeEmEstoque(
     String produtoId,
     int novaQuantidade,
   ) async {
-    try {
-      final produto = _produtosBox.get(produtoId);
-      if (produto != null) {
-        produto.quantidadeEmEstoque = novaQuantidade;
-        produto.updatedAt = DateTime.now();
-        await produto.save();
-      }
-    } catch (e, stacktrace) {
-      if (kDebugMode) {
-        print(
-          'Erro ao atualizar quantidade em estoque para $produtoId no Hive: $e\n$stacktrace',
-        );
-      }
-      rethrow;
+    final produto = _produtosBox.get(produtoId);
+    if (produto != null) {
+      produto.quantidadeEmEstoque = novaQuantidade;
+      produto.updatedAt = DateTime.now();
+      await produto.save();
     }
   }
 

@@ -9,7 +9,7 @@ import 'package:lista_compras/data/repositories/compra_repository.dart';
 import 'package:lista_compras/data/repositories/item_compra_repository.dart';
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
-import 'package:lista_compras/data/repositories/produto_repository.dart'; // Removido, se não usado
+import 'package:lista_compras/data/repositories/produto_repository.dart';
 
 import 'package:lista_compras/presentation/widgets/purchase_history_filter_modal.dart';
 import 'package:intl/intl.dart';
@@ -128,7 +128,6 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
                   const SizedBox(height: 10),
                   Expanded(
                     child: FutureBuilder<List<ItemCompraModel>>(
-                      // ATUALIZADO: Usar o novo método para itens da compra HISTÓRICA
                       future: _itemCompraRepository
                           .getItensFromHistoricalCompra(compra.id),
                       builder: (context, snapshot) {

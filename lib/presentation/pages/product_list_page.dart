@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_final_fields, avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:lista_compras/presentation/pages/premium_purchase_page.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
 import '../../data/models/categoria_model.dart';
@@ -18,6 +19,8 @@ import 'package:lista_compras/presentation/widgets/add_categoria_modal.dart';
 // NOVOS IMPORTS PARA AS PÁGINAS DE GERENCIAMENTO
 import 'package:lista_compras/presentation/pages/categoria_management_page.dart';
 import 'package:lista_compras/presentation/pages/purchase_history_page.dart';
+
+import 'package:lista_compras/services/ad_manager.dart';
 
 // ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, unused_import, unused_element, duplicate_ignore
 
@@ -48,18 +51,21 @@ class _ProductListPageState extends State<ProductListPage> {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
     _loadAuxiliaryData();
-
+    _createDefaultCategory();
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text;
       });
     });
+
+    AdManager.loadInterstitialAd();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _searchController.dispose();
+    AdManager.disposeAd();
     super.dispose();
   }
 
@@ -68,6 +74,7 @@ class _ProductListPageState extends State<ProductListPage> {
       _selectedIndex = index;
     });
     _pageController.jumpToPage(index);
+    AdManager.maybeShowInterstitialAd();
   }
 
   Future<void> _loadAuxiliaryData() async {
@@ -82,6 +89,14 @@ class _ProductListPageState extends State<ProductListPage> {
     });
   }
 
+  void _createDefaultCategory() async {
+    if (_categoriasDescricao.isEmpty) {
+      final categoriaDefault = CategoriaModel(descricao: "Alimentos");
+
+      await _categoriaRepository.addCategoria(categoriaDefault);
+    }
+  }
+
   void _handleEditProduct(ProdutoModel product) async {
     await showModalBottomSheet(
       context: context,
@@ -93,10 +108,7 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Future<void> _handleDeleteProduct(ProdutoModel product) async {
-    // Não é mais delete físico, é exclusão lógica via repositório
-    await _produtoRepository.deleteProduto(
-      product.id,
-    ); // Chamada para remoção lógica
+    await _produtoRepository.deleteProduto(product.id);
   }
 
   void _handleUpdateStock(ProdutoModel product) async {
@@ -144,6 +156,7 @@ class _ProductListPageState extends State<ProductListPage> {
                 title: const Text('Criar Nova Categoria'),
                 onTap: () {
                   Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
@@ -154,14 +167,12 @@ class _ProductListPageState extends State<ProductListPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(
-                  Icons.history,
-                ), // NOVO: Ícone para Histórico
-                title: const Text('Histórico de Compras'), // NOVO: Título
+                leading: const Icon(Icons.history),
+                title: const Text('Histórico de Compras'),
                 onTap: () {
-                  Navigator.pop(context); // Fecha o modal de opções
+                  Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
                   Navigator.push(
-                    // Navega para a nova página
                     context,
                     MaterialPageRoute(
                       builder: (context) => const PurchaseHistoryPage(),
@@ -173,11 +184,26 @@ class _ProductListPageState extends State<ProductListPage> {
                 leading: const Icon(Icons.category_outlined),
                 title: const Text('Categorias'),
                 onTap: () {
-                  Navigator.pop(context); // Fecha o modal de opções
+                  Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const CategoriaManagementPage(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.category_outlined),
+                title: const Text('✨ Ser Premium! ✨'),
+                onTap: () {
+                  Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PremiumPurchasePage(),
                     ),
                   );
                 },
@@ -215,9 +241,7 @@ class _ProductListPageState extends State<ProductListPage> {
                 preferredSize: const Size.fromHeight(60.0),
                 child: ProductSearchBar(
                   controller: _searchController,
-                  onChanged: (text) {
-                    // setState já é chamado no listener do _searchController
-                  },
+                  onChanged: (text) {},
                 ),
               )
             : null,

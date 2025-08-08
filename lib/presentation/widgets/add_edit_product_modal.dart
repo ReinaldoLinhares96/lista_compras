@@ -23,8 +23,7 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
   late TextEditingController _nomeController;
   late int _quantidadeIdealMes;
   String? _selectedCategoriaId;
-  late TextEditingController
-  _quantidadeIdealController; // Para o TextFormField ao lado do Slider
+  late TextEditingController _quantidadeIdealController;
 
   @override
   void initState() {
@@ -36,7 +35,6 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
       text: _quantidadeIdealMes.toString(),
     );
 
-    // Adiciona o listener para sincronizar TextFormField com Slider
     _quantidadeIdealController.addListener(_updateSliderFromText);
   }
 
@@ -114,15 +112,13 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
                   return const CircularProgressIndicator();
                 }
                 final categorias = snapshot.data!;
-                // VERIFICAR SE _selectedCategoriaId EXISTE NA LISTA DE CATEGORIAS
                 final bool isSelectedCategoriaIdValid = categorias.any(
                   (c) => c.id == _selectedCategoriaId,
                 );
                 return DropdownButtonFormField<String>(
-                  // Se o _selectedCategoriaId não for válido, defina-o como null
                   value: isSelectedCategoriaIdValid
                       ? _selectedCategoriaId
-                      : null, // CORREÇÃO AQUI
+                      : null,
                   hint: categorias.isNotEmpty
                       ? const Text('Selecione a Categoria')
                       : const Text('Crie uma Categoria'),
@@ -169,7 +165,7 @@ class _AddEditProductModalState extends State<AddEditProductModal> {
                   await _produtoRepository.updateProduto(newProduto);
                 }
                 if (mounted) {
-                  Navigator.pop(context); // Fecha o modal
+                  Navigator.pop(context);
                 }
               },
               child: Text(

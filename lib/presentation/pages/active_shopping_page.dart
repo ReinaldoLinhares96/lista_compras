@@ -3,9 +3,9 @@
 // ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore, avoid_print, unnecessary_brace_in_string_interps, await_only_futures, unused_local_variable
 
 import 'package:flutter/material.dart';
-// Remova o import do Firebase, se estiver aqui (ex: import 'package:cloud_firestore/cloud_firestore.dart';)
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/presentation/widgets/add_frequent_product_to_cart_modal.dart';
+import 'package:lista_compras/presentation/widgets/product_search_bar.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/models/item_compra_model.dart';
 import '../../data/models/produto_model.dart';
@@ -13,12 +13,13 @@ import '../../data/models/orcamento_model.dart';
 import '../../data/repositories/compra_repository.dart';
 import '../../data/repositories/item_compra_repository.dart';
 import '../../data/repositories/produto_repository.dart';
-import '../../data/repositories/orcamento_repository.dart'; // Para descrições
-import '../../data/repositories/categoria_repository.dart'; // Para descrições
+import '../../data/repositories/orcamento_repository.dart';
+import '../../data/repositories/categoria_repository.dart';
 import '../../core/enums/compra_status_type.dart';
 import 'dart:developer' as developer;
 
 import 'package:lista_compras/presentation/widgets/add_avulso_modal_form.dart';
+import 'package:lista_compras/services/ad_manager.dart';
 
 class ActiveShoppingPage extends StatefulWidget {
   const ActiveShoppingPage({super.key});
@@ -38,7 +39,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   OrcamentoModel? _orcamentoAtual;
   List<ProdutoModel> _allProdutosFrequentes = [];
   List<ItemCompraModel> _itensNoCarrinho = [];
-
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
+  int _selectedIndex = 0;
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
@@ -52,10 +55,16 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     _listenToCompraAtiva();
     _listenToOrcamento();
     _listenToAllProdutosFrequentes();
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text;
+      });
+    });
   }
 
   @override
   void dispose() {
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -78,8 +87,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         _compraAtiva = compra;
       });
       if (compra != null) {
-        // getItensCompra retorna Future<List<ItemCompraModel>>, não Stream<List<ItemCompraModel>>
-        // Então, precisamos lidar com isso como um Future no listener
         _itemCompraRepository.getItensFromActiveCompra(compra.id).listen((
           itens,
         ) {
@@ -113,10 +120,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
 
   Future<void> _iniciarCompra() async {
     try {
-      // **CORREÇÃO AQUI:** Verificar se já existe uma compra ativa
       final CompraModel? compraExistente = await _compraRepository
           .getCompraAtiva()
-          .first; // Obtém o primeiro valor e completa o Future
+          .first;
 
       if (compraExistente != null) {
         if (mounted) {
@@ -127,8 +133,9 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ),
             ),
           );
+          AdManager.maybeShowInterstitialAd();
         }
-        return; // Impede a criação de uma nova compra
+        return;
       }
 
       await _compraRepository.iniciarNovaCompra();
@@ -136,6 +143,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Nova compra iniciada!')));
+        AdManager.maybeShowInterstitialAd();
       }
     } catch (e) {
       if (mounted) {
@@ -252,27 +260,12 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
       );
 
       try {
-        print(
-          'DEBUG: Entrou no Try para finalizar compra. Compra ID capturado: $idDaCompraFinalizada',
-        );
-
-        // Primeiro, finalize a compra no repositório. Isso deve atualizar o status e dataFim.
         await _compraRepository.finalizarCompra(
           idDaCompraFinalizada,
           valorTotalParaFinalizar,
         );
-        print(
-          'DEBUG: Compra finalizada no BD. ID: $idDaCompraFinalizada. _compraAtiva AGORA É NULL VIA STREAM.',
-        );
-
-        print(
-          'DEBUG: Processando ${itensDaCompraParaProcessar.length} itens para atualizar estoque.',
-        );
 
         if (itensDaCompraParaProcessar.isEmpty) {
-          print(
-            'DEBUG: Nao ha itens na lista capturada para atualizar o estoque.',
-          );
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -282,44 +275,28 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ),
             );
           }
-          // Garante que a UI se atualize mesmo se não houver itens para processar
           setState(() {
-            _compraAtiva = null; // Force o estado de compra ativa para nulo
+            _compraAtiva = null;
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Compra finalizada com sucesso!')),
             );
           }
-          print('DEBUG: Fim da finalizacao da compra, sem erros aparentes.');
           return;
         }
 
         for (var item in itensDaCompraParaProcessar) {
-          print(
-            'DEBUG: Entrou no for, Item: ${item.nomeProduto}, Qtd comprada: ${item.quantidadeComprada}',
-          );
-
           if (item.produtoId != null) {
             final ProdutoModel? produtoOriginal = _allProdutosFrequentes
                 .firstWhereOrNull((p) => p.id == item.produtoId);
 
             if (produtoOriginal == null) {
-              print(
-                'DEBUG: PRODUTO ORIGINAL NAO ENCONTRADO PARA ITEM ${item.nomeProduto}. Pulando atualizacao de estoque.',
-              );
               continue;
             }
 
             final updatedEstoque =
                 produtoOriginal.quantidadeEmEstoque + item.quantidadeComprada;
-
-            print(
-              'DEBUG: updatedEstoque: ${updatedEstoque.toStringAsFixed(1)}',
-            );
-            print(
-              'DEBUG: quantidadeIdealMes: ${produtoOriginal.quantidadeIdealMes.toStringAsFixed(1)}',
-            );
 
             produtoOriginal.quantidadeEmEstoque = updatedEstoque;
             produtoOriginal.updatedAt = DateTime.now();
@@ -350,40 +327,25 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               );
               if (updateIdeal == true) {
                 produtoOriginal.quantidadeIdealMes = updatedEstoque;
-                print('DEBUG: Usuario escolheu atualizar ideal tambem.');
-              } else {
-                print('DEBUG: Usuario escolheu NAO atualizar ideal.');
               }
             }
             await produtoOriginal.save();
-            print('DEBUG: updateProduto chamado para ${produtoOriginal.nome}.');
-          } else {
-            print(
-              'DEBUG: Item ${item.nomeProduto} eh avulso, estoque nao sera atualizado.',
-            );
           }
         }
 
-        // ATUALIZADO: Remover itens logicamente um por um
         for (var item in itensDaCompraParaProcessar) {
           await _itemCompraRepository.markItemAsRemoved(item.id);
         }
-        print(
-          'DEBUG: Itens do carrinho removidos fisicamente após finalização.',
-        );
-
-        // Forçar atualização da UI após todas as operações do repositório
         if (mounted) {
           setState(() {
-            _compraAtiva = null; // Garante que o estado seja nulo imediatamente
+            _compraAtiva = null;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra finalizada com sucesso!')),
           );
         }
-        print('DEBUG: Fim da finalizacao da compra, sem erros aparentes.');
-      } catch (e, stackTrace) {
-        print('DEBUG: Erro ao finalizar compra: $e\nStackTrace: $stackTrace');
+        AdManager.maybeShowInterstitialAd();
+      } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erro ao finalizar compra: $e')),
@@ -393,7 +355,6 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     }
   }
 
-  // NOVO: Método para cancelar a compra
   Future<void> _cancelarCompra() async {
     if (_compraAtiva == null ||
         _compraAtiva!.compraStatusId !=
@@ -427,38 +388,28 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     if (confirm == true) {
       final double valorTotalParaFinalizar = _compraAtiva!.valorTotalCalculado;
       try {
-        print(
-          'DEBUG: Iniciando cancelamento da compra ID: ${_compraAtiva!.id}',
-        );
-
-        // ATUALIZADO: Remover itens logicamente um por um
         final List<ItemCompraModel> itensParaRemover = List.from(
           _itensNoCarrinho,
         );
         for (var item in itensParaRemover) {
           await _itemCompraRepository.markItemAsRemoved(item.id);
         }
-        print(
-          'DEBUG: Itens do carrinho removidos fisicamente após cancelamento.',
-        );
 
-        // Chamar o método de cancelar compra no repositório (apenas um parâmetro)
         await _compraRepository.cancelarCompra(
           _compraAtiva!.id,
           valorTotalParaFinalizar,
-        ); // Removido o segundo parâmetro
-        print('DEBUG: Compra cancelada no BD.');
+        );
 
         if (mounted) {
           setState(() {
-            _compraAtiva = null; // Garante que o estado seja nulo imediatamente
+            _compraAtiva = null;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra cancelada com sucesso!')),
           );
+          AdManager.maybeShowInterstitialAd();
         }
-      } catch (e, stackTrace) {
-        print('DEBUG: Erro ao cancelar compra: $e\nStackTrace: $stackTrace');
+      } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erro ao cancelar compra: $e')),
@@ -473,19 +424,37 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
     double saldoRestante =
         (_orcamentoAtual?.valorMaximo ?? 0.0) -
         (_compraAtiva?.valorTotalCalculado ?? 0.0);
-    final List<ProdutoModel> produtosPrecisaComprar = _allProdutosFrequentes
-        .where((p) {
-          int currentStock = p.quantidadeEmEstoque;
-          int quantityInCart = _itensNoCarrinho
-              .where((item) => item.produtoId == p.id)
-              .fold(0, (sum, item) => sum + item.quantidadeComprada);
+    final List<ProdutoModel> produtosPrecisaComprar =
+        _allProdutosFrequentes
+            .where((p) {
+              int currentStock = p.quantidadeEmEstoque;
+              int quantityInCart = _itensNoCarrinho
+                  .where((item) => item.produtoId == p.id)
+                  .fold(0, (sum, item) => sum + item.quantidadeComprada);
 
-          return (p.quantidadeIdealMes - currentStock - quantityInCart) > 0;
-        })
-        .toList();
+              return (p.quantidadeIdealMes - currentStock - quantityInCart) > 0;
+            })
+            .where(
+              (p) =>
+                  _searchText.isEmpty ||
+                  p.nome.toLowerCase().contains(_searchText.toLowerCase()),
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()),
+          );
 
     final Map<String, List<ItemCompraModel>> itensNoCarrinhoPorCategoria = {};
-    for (var item in _itensNoCarrinho) {
+    for (var item in _itensNoCarrinho.where((item) {
+      if (_searchText.isEmpty) return true;
+      final produtoFreq = _allProdutosFrequentes.firstWhereOrNull(
+        (p) => p.id == item.produtoId,
+      );
+      return produtoFreq?.nome.toLowerCase().contains(
+            _searchText.toLowerCase(),
+          ) ??
+          false;
+    })) {
       String categoriaDesc = 'Itens Avulsos';
       if (item.produtoId != null) {
         final produtoFreq = _allProdutosFrequentes.firstWhereOrNull(
@@ -501,12 +470,12 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
           .putIfAbsent(categoriaDesc, () => [])
           .add(item);
     }
+
     final sortedItensNoCarrinhoCategories =
         itensNoCarrinhoPorCategoria.keys.toList()..sort();
 
     return Scaffold(
       appBar: AppBar(
-        // AppBar agora está aqui
         title: Text(
           'Saldo: R\$ ${saldoRestante.toStringAsFixed(2).replaceAll('.', ',')}',
           style: Theme.of(
@@ -525,11 +494,8 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               _compraAtiva!.compraStatusId ==
                   CompraStatusType.ativa.value.toString())
             IconButton(
-              icon: const Icon(
-                Icons.cancel_outlined,
-                color: Colors.orange,
-              ), // Ícone de cancelar
-              onPressed: _cancelarCompra, // Chamada para _cancelarCompra
+              icon: const Icon(Icons.cancel_outlined, color: Colors.orange),
+              onPressed: _cancelarCompra,
               tooltip: 'Cancelar Compra',
             )
           else
@@ -556,6 +522,15 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               tooltip: 'Carrinho vazio para finalizar',
             ),
         ],
+        bottom: _selectedIndex == 0
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(60.0),
+                child: ProductSearchBar(
+                  controller: _searchController,
+                  onChanged: (text) {},
+                ),
+              )
+            : null,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

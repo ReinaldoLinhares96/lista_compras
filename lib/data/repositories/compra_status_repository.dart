@@ -1,6 +1,5 @@
 // ignore_for_file: depend_on_referenced_packages, avoid_print, unnecessary_brace_in_string_interps
 
-import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/compra_status_model.dart';
 import '../../core/enums/compra_status_type.dart';
@@ -35,40 +34,33 @@ class CompraStatusRepository {
         final newStatus = CompraStatusModel(
           id: docId,
           descricao: description,
-          isActive: true, // NOVO: Definir como ativo por padrão
-          isRemoved: false, // NOVO: Definir como não removido por padrão
+          isActive: true,
+          isRemoved: false,
         );
         await _compraStatusBox.put(docId, newStatus);
-        if (kDebugMode) {
-          print('Status de Compra padrão "${description}" adicionado ao Hive.');
-        }
       }
     }
   }
 
   Stream<List<CompraStatusModel>> getCompraStatus() {
-    // Filtrar apenas status ativos (se houver a necessidade de desativar um status)
     return _compraStatusBox
         .watch()
         .map(
           (event) => _compraStatusBox.values
               .where((s) => s.isActive && !s.isRemoved)
               .toList(),
-        ) // FILTRO AQUI
+        )
         .startWith(
           _compraStatusBox.values
               .where((s) => s.isActive && !s.isRemoved)
               .toList(),
-        ); // Emissão inicial
+        );
   }
 
   CompraStatusModel? getStatusById(String id) {
-    return _compraStatusBox.get(
-      id,
-    ); // Não precisa filtrar por isActive aqui, pois o ID é único
+    return _compraStatusBox.get(id);
   }
 
-  // Adicionar métodos update e delete para CompraStatusModel se precisar gerenciar no futuro
   Future<void> updateCompraStatus(CompraStatusModel status) async {
     final existingStatus = _compraStatusBox.get(status.id);
     if (existingStatus != null) {
