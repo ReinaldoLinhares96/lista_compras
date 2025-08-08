@@ -65,6 +65,7 @@ class AdManager {
     }
   }
 
+
   static void disposeAd() {
     _interstitialAd?.dispose();
     _interstitialAd = null;
