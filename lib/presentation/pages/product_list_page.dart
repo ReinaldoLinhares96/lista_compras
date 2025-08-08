@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_final_fields, avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:lista_compras/presentation/pages/premium_purchase_page.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
 import '../../data/models/categoria_model.dart';
@@ -186,6 +187,20 @@ class _ProductListPageState extends State<ProductListPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => const CategoriaManagementPage(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.category_outlined),
+                title: const Text('✨ Ser Premium! ✨'),
+                onTap: () {
+                  Navigator.pop(context);
+                  AdManager.maybeShowInterstitialAd();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PremiumPurchasePage(),
                     ),
                   );
                 },
