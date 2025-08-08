@@ -33,9 +33,6 @@ migrate_working_dir/
 .pub/
 /build/
 
-# Android signing keys
-android/key.properties
-
 # Symbolication related
 app.*.symbols
 
