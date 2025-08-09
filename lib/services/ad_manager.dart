@@ -51,16 +51,18 @@ class AdManager {
     );
   }
 
-  static void maybeShowInterstitialAd() async {
-    _interactionCount++;
-    if (_interactionCount >= INTERACTION_THRESHOLD) {
-      if (_isInterstitialAdLoaded && _interstitialAd != null) {
-        _interstitialAd?.show();
-        _isInterstitialAdLoaded = false;
-        _interactionCount = 0;
-      } else {
-        debugPrint('Interstitial Ad not ready to show. Loading a new one.');
-        loadInterstitialAd();
+  static void maybeShowInterstitialAd(bool isPremium) async {
+    if (!isPremium) {
+      _interactionCount++;
+      if (_interactionCount >= INTERACTION_THRESHOLD) {
+        if (_isInterstitialAdLoaded && _interstitialAd != null) {
+          _interstitialAd?.show();
+          _isInterstitialAdLoaded = false;
+          _interactionCount = 0;
+        } else {
+          debugPrint('Interstitial Ad not ready to show. Loading a new one.');
+          loadInterstitialAd();
+        }
       }
     }
   }

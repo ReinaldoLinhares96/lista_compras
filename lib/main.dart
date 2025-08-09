@@ -8,6 +8,7 @@ import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
 import 'package:lista_compras/data/models/item_compra_model.dart';
 import 'package:lista_compras/data/models/compra_status_model.dart';
+import 'package:lista_compras/data/repositories/categoria_repository.dart';
 
 // Repositórios necessários para inicialização de dados padrão (se aplicável no Hive)
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
@@ -43,6 +44,7 @@ void main() async {
   // Inicialização de repositórios que ainda gerenciam dados padrão.
   await CompraStatusRepository().initializeDefaultCompraStatus();
   await OrcamentoRepository().initializeDefaultOrcamento();
+  await CategoriaRepository().initializeDefaultCompraStatus();
 
   runApp(const MyApp());
 }

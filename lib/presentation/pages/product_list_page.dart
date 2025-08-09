@@ -1,7 +1,9 @@
 // ignore_for_file: prefer_final_fields, avoid_print
 
 import 'package:flutter/material.dart';
+import 'package:lista_compras/data/repositories/premium_status_repository.dart';
 import 'package:lista_compras/presentation/pages/premium_purchase_page.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
 import '../../data/models/categoria_model.dart';
@@ -34,6 +36,7 @@ class ProductListPage extends StatefulWidget {
 class _ProductListPageState extends State<ProductListPage> {
   final ProdutoRepository _produtoRepository = ProdutoRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
+  late final PremiumStatusRepository _premiumStatusRepository;
 
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
@@ -43,15 +46,19 @@ class _ProductListPageState extends State<ProductListPage> {
 
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
-
+  bool _isPremium = false;
   Map<String, bool> _categoryExpansionState = {};
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+    _premiumStatusRepository = Provider.of<PremiumStatusRepository>(
+      context,
+      listen: false,
+    );
+
     _loadAuxiliaryData();
-    _createDefaultCategory();
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text;
@@ -74,7 +81,7 @@ class _ProductListPageState extends State<ProductListPage> {
       _selectedIndex = index;
     });
     _pageController.jumpToPage(index);
-    AdManager.maybeShowInterstitialAd();
+    AdManager.maybeShowInterstitialAd(_isPremium);
   }
 
   Future<void> _loadAuxiliaryData() async {
@@ -87,14 +94,6 @@ class _ProductListPageState extends State<ProductListPage> {
         }
       });
     });
-  }
-
-  void _createDefaultCategory() async {
-    if (_categoriasDescricao.isEmpty) {
-      final categoriaDefault = CategoriaModel(descricao: "Alimentos");
-
-      await _categoriaRepository.addCategoria(categoriaDefault);
-    }
   }
 
   void _handleEditProduct(ProdutoModel product) async {
@@ -127,89 +126,116 @@ class _ProductListPageState extends State<ProductListPage> {
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 60,
-            top: 20,
-            left: 10,
-            right: 10,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.shopping_basket),
-                title: const Text('Criar Novo Produto'),
-                onTap: () {
-                  Navigator.pop(context);
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return const AddEditProductModal();
+        return StreamBuilder<bool>(
+          stream: _premiumStatusRepository.isPremiumStream,
+          initialData: _premiumStatusRepository.isPremium,
+          builder: (context, snapshot) {
+            _isPremium = snapshot.data ?? false;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 60,
+                top: 20,
+                left: 10,
+                right: 10,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  ListTile(
+                    leading: const Icon(Icons.shopping_basket),
+                    title: const Text('Criar Novo Produto'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (context) {
+                          return const AddEditProductModal();
+                        },
+                      );
                     },
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.category),
-                title: const Text('Criar Nova Categoria'),
-                onTap: () {
-                  Navigator.pop(context);
-                  AdManager.maybeShowInterstitialAd();
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (context) {
-                      return const AddCategoriaModal();
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.category),
+                    title: const Text('Criar Nova Categoria'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      AdManager.maybeShowInterstitialAd(_isPremium);
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (context) {
+                          return const AddCategoriaModal();
+                        },
+                      );
                     },
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.history),
-                title: const Text('Histórico de Compras'),
-                onTap: () {
-                  Navigator.pop(context);
-                  AdManager.maybeShowInterstitialAd();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PurchaseHistoryPage(),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.history),
+                    title: const Text('Histórico de Compras'),
+                    // Habilitar a opção somente para usuários premium
+                    onTap: _isPremium
+                        ? () {
+                            Navigator.pop(context);
+                            AdManager.maybeShowInterstitialAd(_isPremium);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PurchaseHistoryPage(),
+                              ),
+                            );
+                          }
+                        : null, // Desabilitar o botão se não for premium
+                    trailing: !_isPremium
+                        ? const Icon(Icons.lock, color: Colors.grey)
+                        : null,
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.category_outlined),
+                    title: const Text('Categorias'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      AdManager.maybeShowInterstitialAd(_isPremium);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CategoriaManagementPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  // OPÇÃO DE PREMIUM (Botão dinâmico)
+                  if (!_isPremium)
+                    ListTile(
+                      leading: const Icon(Icons.star),
+                      title: const Text('Ser Premium Agora!'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        AdManager.maybeShowInterstitialAd(_isPremium);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PremiumPurchasePage(),
+                          ),
+                        );
+                      },
+                    )
+                  else
+                    ListTile(
+                      leading: const Icon(Icons.star),
+                      title: const Text(
+                        'Você já é Premium!',
+                        style: TextStyle(color: Colors.green),
+                      ),
+                      onTap: null, // Desabilitar se já for premium
                     ),
-                  );
-                },
+                ],
               ),
-              ListTile(
-                leading: const Icon(Icons.category_outlined),
-                title: const Text('Categorias'),
-                onTap: () {
-                  Navigator.pop(context);
-                  AdManager.maybeShowInterstitialAd();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CategoriaManagementPage(),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.category_outlined),
-                title: const Text('✨ Ser Premium! ✨'),
-                onTap: () {
-                  Navigator.pop(context);
-                  AdManager.maybeShowInterstitialAd();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PremiumPurchasePage(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
