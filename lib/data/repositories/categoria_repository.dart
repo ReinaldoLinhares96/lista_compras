@@ -15,8 +15,10 @@ class CategoriaRepository {
     _categoriasBox = Hive.box<CategoriaModel>('categoriasBox');
   }
 
-  Future<void> initializeDefaultCompraStatus() async {
-    if (await getCategorias().isEmpty) {
+  Future<void> initializeDefaultCategoria() async {
+    var existCategoria = await getCategoriaByDescricao('Alimentos');
+
+    if (existCategoria == null) {
       final categoriaDefault = CategoriaModel(descricao: "Alimentos");
 
       await _categoriasBox.add(categoriaDefault);

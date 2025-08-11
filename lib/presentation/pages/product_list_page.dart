@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_final_fields, avoid_print
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/repositories/premium_status_repository.dart';
 import 'package:lista_compras/presentation/pages/premium_purchase_page.dart';
@@ -36,7 +38,8 @@ class ProductListPage extends StatefulWidget {
 class _ProductListPageState extends State<ProductListPage> {
   final ProdutoRepository _produtoRepository = ProdutoRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
-  late final PremiumStatusRepository _premiumStatusRepository;
+  final PremiumStatusRepository _premiumStatusRepository =
+      PremiumStatusRepository();
 
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
@@ -47,23 +50,26 @@ class _ProductListPageState extends State<ProductListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
   bool _isPremium = false;
+  late StreamSubscription<bool> _premiumStatusSubscription;
   Map<String, bool> _categoryExpansionState = {};
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
-    _premiumStatusRepository = Provider.of<PremiumStatusRepository>(
-      context,
-      listen: false,
-    );
-
     _loadAuxiliaryData();
     _searchController.addListener(() {
       setState(() {
         _searchText = _searchController.text;
       });
     });
+
+    _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
+        .listen((isPremium) {
+          setState(() {
+            _isPremium = isPremium;
+          });
+        });
 
     AdManager.loadInterstitialAd();
   }
@@ -72,6 +78,7 @@ class _ProductListPageState extends State<ProductListPage> {
   void dispose() {
     _pageController.dispose();
     _searchController.dispose();
+    _premiumStatusSubscription.cancel();
     AdManager.disposeAd();
     super.dispose();
   }

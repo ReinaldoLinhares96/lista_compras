@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../../data/repositories/premium_status_repository.dart';
 
 // IDs dos seus produtos configurados nas lojas
-const String _kPremiumProduct = 'fortisacl.lista_compras.premium';
+const String _kPremiumProduct = 'fortisacl.lista_compras.anual';
 const Set<String> _kProductIds = {_kPremiumProduct};
 
 class PremiumPurchasePage extends StatefulWidget {
@@ -60,6 +60,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     final productDetailsResponse = await _inAppPurchase.queryProductDetails(
       _kProductIds,
     );
+
     if (productDetailsResponse.error != null) {
       setState(() {
         _queryProductError = productDetailsResponse.error!.message;
@@ -156,8 +157,26 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                       final product = _products[index];
                       return Card(
                         child: ListTile(
-                          title: Text(product.title),
-                          subtitle: Text(product.description),
+                          title: product.price.length == 6
+                              ? Text('Teste Gratuito de 3 dias')
+                              : product.price.length == 7
+                              ? Text('Plano Premium Anual')
+                              : product.price.length == 8
+                              ? Text(' Plano Premium Mensal')
+                              : Text(''),
+                          subtitle: product.price.length == 6
+                              ? Text(
+                                  'Experimente todos os recursos Premium sem compromisso. Sem anúncios e com histórico disponível.',
+                                )
+                              : product.price.length == 7
+                              ? Text(
+                                  'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.',
+                                )
+                              : product.price.length == 8
+                              ? Text(
+                                  'Acesso total a todos os recursos Premium, com flexibilidade de renovação mensal.',
+                                )
+                              : Text(''),
                           trailing: ElevatedButton(
                             onPressed: _purchasePending
                                 ? null

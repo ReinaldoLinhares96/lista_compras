@@ -13,6 +13,12 @@ class PremiumStatusRepository {
     _premiumStatusBox = Hive.box<bool>('premiumStatusBox');
   }
 
+  Future<void> initializeDefaultPremiumStatus() async {
+    if (!_premiumStatusBox.containsKey(_premiumStatusKey)) {
+      await _premiumStatusBox.put(_premiumStatusKey, false);
+    }
+  }
+
   Stream<bool> get isPremiumStream {
     return _premiumStatusBox
         .watch(key: _premiumStatusKey)

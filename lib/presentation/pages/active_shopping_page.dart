@@ -2,6 +2,8 @@
 
 // ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore, avoid_print, unnecessary_brace_in_string_interps, await_only_futures, unused_local_variable
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/repositories/premium_status_repository.dart';
@@ -36,7 +38,8 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   final ProdutoRepository _produtoRepository = ProdutoRepository();
   final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
-  late final PremiumStatusRepository _premiumStatusRepository;
+  final PremiumStatusRepository _premiumStatusRepository =
+      PremiumStatusRepository();
 
   CompraModel? _compraAtiva;
   OrcamentoModel? _orcamentoAtual;
@@ -52,6 +55,8 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   bool _panelPrecisaComprarExpanded = true;
   bool _panelNoCarrinhoExpanded = true;
 
+  late StreamSubscription<bool> _premiumStatusSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -64,10 +69,13 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         _searchText = _searchController.text;
       });
     });
-    _premiumStatusRepository = Provider.of<PremiumStatusRepository>(
-      context,
-      listen: false,
-    );
+
+    _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
+        .listen((isPremium) {
+          setState(() {
+            _isPremium = isPremium;
+          });
+        });
   }
 
   @override
