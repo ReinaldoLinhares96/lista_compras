@@ -30,6 +30,9 @@ dependencies:
     sdk: flutter
 
 
+  provider: ^6.1.5
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,6 +1,9 @@
+// ignore_for_file: await_only_futures
+
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lista_compras/data/models/orcamento_model.dart';
+import 'package:lista_compras/data/models/premium_status_model.dart';
 
 // Importe todos os seus modelos para registrar seus adaptadores
 import 'package:lista_compras/data/models/produto_model.dart';
@@ -8,10 +11,12 @@ import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
 import 'package:lista_compras/data/models/item_compra_model.dart';
 import 'package:lista_compras/data/models/compra_status_model.dart';
+import 'package:lista_compras/data/repositories/categoria_repository.dart';
 
 // Repositórios necessários para inicialização de dados padrão (se aplicável no Hive)
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/orcamento_repository.dart';
+import 'package:lista_compras/data/repositories/premium_status_repository.dart';
 
 // Importe a ProductListPage como a página inicial
 import 'package:lista_compras/presentation/pages/product_list_page.dart'; // CORREÇÃO AQUI
@@ -21,7 +26,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // await Hive.deleteFromDisk(); // Comente ou remova após a depuração inicial
+  //await Hive.deleteFromDisk(); // Comente ou remova após a depuração inicial
   await Hive.initFlutter();
 
   // Registre todos os adaptadores gerados
@@ -31,6 +36,7 @@ void main() async {
   Hive.registerAdapter(ItemCompraModelAdapter());
   Hive.registerAdapter(CompraStatusModelAdapter());
   Hive.registerAdapter(OrcamentoModelAdapter());
+  Hive.registerAdapter(PremiumStatusModelAdapter());
 
   // ABRA AS CAIXAS (BOXES) QUE VOCÊ VAI USAR NO SEU APLICATIVO
   await Hive.openBox<ProdutoModel>('produtosBox');
@@ -38,11 +44,14 @@ void main() async {
   await Hive.openBox<CompraModel>('comprasBox');
   await Hive.openBox<ItemCompraModel>('itensCompraBox');
   await Hive.openBox<CompraStatusModel>('compraStatusBox');
-  await Hive.openBox<double>('orcamentoBox'); // Caixa para o valor do orçamento
+  await Hive.openBox<double>('orcamentoBox');
+  await Hive.openBox<bool>('premiumStatusBox');
 
   // Inicialização de repositórios que ainda gerenciam dados padrão.
   await CompraStatusRepository().initializeDefaultCompraStatus();
   await OrcamentoRepository().initializeDefaultOrcamento();
+  await CategoriaRepository().initializeDefaultCategoria();
+  await PremiumStatusRepository().initializeDefaultPremiumStatus();
 
   runApp(const MyApp());
 }

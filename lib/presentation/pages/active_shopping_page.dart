@@ -2,10 +2,14 @@
 
 // ignore_for_file: unused_import, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, avoid_types_as_parameter_names, deprecated_member_use, prefer_final_fields, unused_field, duplicate_ignore, avoid_print, unnecessary_brace_in_string_interps, await_only_futures, unused_local_variable
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
+import 'package:lista_compras/data/repositories/premium_status_repository.dart';
 import 'package:lista_compras/presentation/widgets/add_frequent_product_to_cart_modal.dart';
 import 'package:lista_compras/presentation/widgets/product_search_bar.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/compra_model.dart';
 import '../../data/models/item_compra_model.dart';
 import '../../data/models/produto_model.dart';
@@ -34,6 +38,8 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   final ProdutoRepository _produtoRepository = ProdutoRepository();
   final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
+  final PremiumStatusRepository _premiumStatusRepository =
+      PremiumStatusRepository();
 
   CompraModel? _compraAtiva;
   OrcamentoModel? _orcamentoAtual;
@@ -42,11 +48,14 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
   int _selectedIndex = 0;
+  bool _isPremium = false;
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
   bool _panelPrecisaComprarExpanded = true;
   bool _panelNoCarrinhoExpanded = true;
+
+  late StreamSubscription<bool> _premiumStatusSubscription;
 
   @override
   void initState() {
@@ -60,6 +69,13 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         _searchText = _searchController.text;
       });
     });
+
+    _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
+        .listen((isPremium) {
+          setState(() {
+            _isPremium = isPremium;
+          });
+        });
   }
 
   @override
@@ -133,7 +149,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ),
             ),
           );
-          AdManager.maybeShowInterstitialAd();
+          AdManager.maybeShowInterstitialAd(_isPremium);
         }
         return;
       }
@@ -143,7 +159,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Nova compra iniciada!')));
-        AdManager.maybeShowInterstitialAd();
+        AdManager.maybeShowInterstitialAd(_isPremium);
       }
     } catch (e) {
       if (mounted) {
@@ -344,7 +360,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
             const SnackBar(content: Text('Compra finalizada com sucesso!')),
           );
         }
-        AdManager.maybeShowInterstitialAd();
+        AdManager.maybeShowInterstitialAd(_isPremium);
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -407,7 +423,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra cancelada com sucesso!')),
           );
-          AdManager.maybeShowInterstitialAd();
+          AdManager.maybeShowInterstitialAd(_isPremium);
         }
       } catch (e) {
         if (mounted) {
@@ -615,15 +631,25 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         children: [
                           ExpansionPanel(
                             headerBuilder: (context, isExpanded) {
-                              return ListTile(
-                                title: Text(
-                                  'Precisa Comprar (${produtosPrecisaComprar.length})',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.deepOrange,
-                                      ),
-                                ),
+                              return StreamBuilder<bool>(
+                                stream:
+                                    _premiumStatusRepository.isPremiumStream,
+                                initialData: _premiumStatusRepository.isPremium,
+                                builder: (context, snapshot) {
+                                  _isPremium = snapshot.data ?? false;
+                                  return ListTile(
+                                    title: Text(
+                                      'Precisa Comprar (${produtosPrecisaComprar.length})',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.deepOrange,
+                                          ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                             body: produtosPrecisaComprar.isEmpty
@@ -718,15 +744,25 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
                         children: [
                           ExpansionPanel(
                             headerBuilder: (context, isExpanded) {
-                              return ListTile(
-                                title: Text(
-                                  'No Carrinho (${_itensNoCarrinho.length})',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade700,
-                                      ),
-                                ),
+                              return StreamBuilder<bool>(
+                                stream:
+                                    _premiumStatusRepository.isPremiumStream,
+                                initialData: _premiumStatusRepository.isPremium,
+                                builder: (context, snapshot) {
+                                  _isPremium = snapshot.data ?? false;
+                                  return ListTile(
+                                    title: Text(
+                                      'No Carrinho (${_itensNoCarrinho.length})',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blue.shade700,
+                                          ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                             body: _itensNoCarrinho.isEmpty
