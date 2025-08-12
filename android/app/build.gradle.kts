@@ -12,9 +12,8 @@ plugins {
 }
 
 // START: Load keystore properties
-// Define um objeto Properties para carregar as propriedades do keystore
-val keystoreProperties = Properties() // Removido 'java.util.' pois agora importamos
-val keystorePropertiesFile = rootProject.file("key.properties") // Busca key.properties na raiz do projeto 'android'
+val keystoreProperties = Properties() 
+val keystorePropertiesFile = rootProject.file("key.properties") 
 
 if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use {
@@ -48,22 +47,19 @@ android {
         versionName = flutter.versionName
     }
 
-    // START: Signing configuration
     signingConfigs {
-        create("release") { // Cria uma configuração de assinatura chamada 'release'
-            storeFile = file("app_release.keystore") // Caminho relativo ao módulo app/
+        create("release") { 
+            storeFile = file("app_release.keystore") 
             storePassword = keystoreProperties.getProperty("storePassword")
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
         }
     }
-    // END: Signing configuration
 
     buildTypes {
         release {
-            // Aplica a configuração de assinatura 'release' criada acima
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true // Opcional: Ativar minificação para reduzir o tamanho do APK
+            isMinifyEnabled = true 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
