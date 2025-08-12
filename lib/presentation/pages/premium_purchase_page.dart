@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unused_element
 
 import 'dart:async';
 
@@ -145,54 +145,112 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Seja Premium!')),
+      appBar: AppBar(
+        title: const Text('Seja Premium!'),
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade100,
+      ),
       body: _isAvailable
-          ? _products.isEmpty
+          ? (_products.isEmpty && _queryProductError == null)
+                ? const Center(child: CircularProgressIndicator())
+                : _queryProductError != null
                 ? Center(
-                    child: Text(_queryProductError ?? 'Carregando produtos...'),
+                    child: Text(
+                      'Erro ao carregar produtos: $_queryProductError',
+                      textAlign: TextAlign.center,
+                    ),
                   )
-                : ListView.builder(
-                    itemCount: _products.length,
-                    itemBuilder: (context, index) {
-                      final product = _products[index];
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: _products.map((product) {
+                      String title;
+                      String description;
+                      Color cardColor;
+
+                      if (product.price.length == 6) {
+                        title = 'Teste Gratuito de 3 dias';
+                        description =
+                            'Experimente todos os recursos Premium sem compromisso. Sem anúncios e com histórico disponível.';
+                        cardColor = Colors.lightBlue.shade100;
+                      } else if (product.price.length == 7) {
+                        title = 'Plano Premium Anual';
+                        description =
+                            'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.';
+                        cardColor = Colors.green.shade100;
+                      } else {
+                        title = 'Plano Premium Mensal';
+                        description =
+                            'Acesso total a todos os recursos Premium, com flexibilidade de renovação mensal.';
+                        cardColor = Colors.deepPurple.shade100;
+                      }
+
                       return Card(
-                        child: ListTile(
-                          title: product.price.length == 6
-                              ? Text('Teste Gratuito de 3 dias')
-                              : product.price.length == 7
-                              ? Text('Plano Premium Anual')
-                              : product.price.length == 8
-                              ? Text(' Plano Premium Mensal')
-                              : Text(''),
-                          subtitle: product.price.length == 6
-                              ? Text(
-                                  'Experimente todos os recursos Premium sem compromisso. Sem anúncios e com histórico disponível.',
-                                )
-                              : product.price.length == 7
-                              ? Text(
-                                  'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.',
-                                )
-                              : product.price.length == 8
-                              ? Text(
-                                  'Acesso total a todos os recursos Premium, com flexibilidade de renovação mensal.',
-                                )
-                              : Text(''),
-                          trailing: ElevatedButton(
-                            onPressed: _purchasePending
-                                ? null
-                                : () => _buyProduct(product),
-                            child: _purchasePending
-                                ? const CircularProgressIndicator()
-                                : Text(product.price),
+                        elevation: 8,
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        color: cardColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                description,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 20),
+                              Align(
+                                alignment: Alignment.bottomRight,
+                                child: ElevatedButton(
+                                  onPressed: _purchasePending
+                                      ? null
+                                      : () => _buyProduct(product),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.deepPurple,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  child: _purchasePending
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : Text(
+                                          product.price,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(color: Colors.white),
+                                        ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
-                    },
+                    }).toList(),
                   )
           : Center(
               child: Text(
-                _queryProductError ??
-                    'A loja de aplicativos não está disponível.',
+                _queryProductError != null
+                    ? 'A loja de aplicativos não está disponível.'
+                    : ' ',
               ),
             ),
     );
