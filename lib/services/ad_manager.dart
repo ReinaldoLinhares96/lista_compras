@@ -11,7 +11,7 @@ class AdManager {
   static bool _isInterstitialAdLoaded = false;
   static const String _adUnitId = kDebugMode
       ? 'ca-app-pub-3940256099942544/1033173712' // ID de teste do Google
-      : 'SEU_ID_DE_BLOCO_INTERSTICIAL_REAL'; // SUBSTITUA EM PRODUÇÃO
+      : 'ca-app-pub-5341718137366668/2052738605'; // SUBSTITUA EM PRODUÇÃO
 
   static int _interactionCount = 0;
   static const int INTERACTION_THRESHOLD = 10;
@@ -66,7 +66,6 @@ class AdManager {
       }
     }
   }
-
 
   static void disposeAd() {
     _interstitialAd?.dispose();
