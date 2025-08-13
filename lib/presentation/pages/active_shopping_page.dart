@@ -48,7 +48,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
   int _selectedIndex = 0;
-  bool _isPremium = false;
+  bool _isPremium = true;
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
 
