@@ -49,7 +49,7 @@ class _ProductListPageState extends State<ProductListPage> {
 
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
-  bool _isPremium = true;
+  bool _isPremium = false;
   late StreamSubscription<bool> _premiumStatusSubscription;
   Map<String, bool> _categoryExpansionState = {};
 
@@ -177,23 +177,6 @@ class _ProductListPageState extends State<ProductListPage> {
                       );
                     },
                   ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.history),
-                    title: const Text('Histórico de Compras'),
-                    // Habilitar a opção somente para usuários premium
-                    onTap: () {
-                      Navigator.pop(context);
-                      AdManager.maybeShowInterstitialAd(_isPremium);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PurchaseHistoryPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(),
                   ListTile(
                     leading: const Icon(Icons.category_outlined),
                     title: const Text('Categorias'),
@@ -208,7 +191,21 @@ class _ProductListPageState extends State<ProductListPage> {
                       );
                     },
                   ),
-                  // OPÇÃO DE PREMIUM (Botão dinâmico)
+                  ListTile(
+                    leading: const Icon(Icons.history),
+                    title: const Text('Histórico de Compras'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      AdManager.maybeShowInterstitialAd(_isPremium);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PurchaseHistoryPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(),
                   if (!_isPremium)
                     ListTile(
                       leading: const Icon(Icons.star),
