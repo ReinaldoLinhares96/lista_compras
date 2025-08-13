@@ -49,7 +49,7 @@ class _ProductListPageState extends State<ProductListPage> {
 
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
-  bool _isPremium = false;
+  bool _isPremium = true;
   late StreamSubscription<bool> _premiumStatusSubscription;
   Map<String, bool> _categoryExpansionState = {};
 
@@ -182,22 +182,16 @@ class _ProductListPageState extends State<ProductListPage> {
                     leading: const Icon(Icons.history),
                     title: const Text('Histórico de Compras'),
                     // Habilitar a opção somente para usuários premium
-                    onTap: _isPremium
-                        ? () {
-                            Navigator.pop(context);
-                            AdManager.maybeShowInterstitialAd(_isPremium);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const PurchaseHistoryPage(),
-                              ),
-                            );
-                          }
-                        : null, // Desabilitar o botão se não for premium
-                    trailing: !_isPremium
-                        ? const Icon(Icons.lock, color: Colors.grey)
-                        : null,
+                    onTap: () {
+                      Navigator.pop(context);
+                      AdManager.maybeShowInterstitialAd(_isPremium);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PurchaseHistoryPage(),
+                        ),
+                      );
+                    },
                   ),
                   const Divider(),
                   ListTile(

@@ -81,6 +81,12 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     });
   }
 
+  bool _isFreeTrial(PurchaseDetails purchase) {
+    return purchase.productID.contains('premium') &&
+        purchase.status == PurchaseStatus.purchased &&
+        purchase.pendingCompletePurchase;
+  }
+
   Future<void> _listenToPurchaseUpdated(
     List<PurchaseDetails> purchaseDetailsList,
   ) async {
@@ -103,7 +109,10 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
               ),
             ),
           );
-        } else if (purchaseDetails.status == PurchaseStatus.purchased) {
+        } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+            purchaseDetails.status == PurchaseStatus.restored ||
+            (purchaseDetails.status == PurchaseStatus.pending &&
+                _isFreeTrial(purchaseDetails))) {
           await _deliverProduct(purchaseDetails, premiumStatusRepository);
         }
 
