@@ -1,17 +1,13 @@
-import java.util.Properties // ADICIONE ESTA LINHA
-import java.io.FileInputStream // ADICIONE ESTA LINHA SE VOCÊ AINDA NÃO TEM
+import java.util.Properties  
+import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
     id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// START: Load keystore properties
 val keystoreProperties = Properties() 
 val keystorePropertiesFile = rootProject.file("key.properties") 
 
@@ -20,7 +16,6 @@ if (keystorePropertiesFile.exists()) {
         keystoreProperties.load(it)
     }
 }
-// END: Load keystore properties
 
 android {
     namespace = "com.fortisacl.lista_compras_inteligente"
@@ -37,10 +32,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.fortisacl.lista_compras_inteligente"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -70,4 +62,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Forçar uso da Play Billing Library 8.0.0
+    val billingVersion = "8.0.0"
+    implementation("com.android.billingclient:billing:$billingVersion")
 }
