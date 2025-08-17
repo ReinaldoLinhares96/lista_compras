@@ -8,8 +8,10 @@ import 'package:provider/provider.dart';
 import '../../data/repositories/premium_status_repository.dart';
 
 // IDs dos seus produtos configurados nas lojas
-const String _kPremiumProduct = 'fortisacl.lista_compras.anual';
-const Set<String> _kProductIds = {_kPremiumProduct};
+const Set<String> _kProductIds = {
+  'fortisacl.lista_compras.anual',
+  'fortisacl.lista_compras.premium',
+};
 
 class PremiumPurchasePage extends StatefulWidget {
   const PremiumPurchasePage({super.key});
@@ -176,21 +178,22 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                       String description;
                       Color cardColor;
 
-                      if (product.price.length == 6) {
-                        title = 'Teste Gratuito de 3 dias';
-                        description =
-                            'Experimente todos os recursos Premium sem compromisso. Sem anúncios e com histórico disponível.';
-                        cardColor = Colors.lightBlue.shade100;
-                      } else if (product.price.length == 7) {
-                        title = 'Plano Premium Anual';
-                        description =
-                            'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.';
-                        cardColor = Colors.green.shade100;
-                      } else {
+                      if (product.id == 'fortisacl.lista_compras.premium') {
                         title = 'Plano Premium Mensal';
                         description =
                             'Acesso total a todos os recursos Premium, com flexibilidade de renovação mensal.';
-                        cardColor = Colors.deepPurple.shade100;
+                        cardColor = Colors.lightBlue.shade100;
+                      }
+
+                      if (product.id == 'fortisacl.lista_compras.anual') {
+                        title = 'Plano Premium Anual';
+                        description =
+                            'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.';
+                        cardColor = Colors.lightGreen.shade100;
+                      } else {
+                        title = ' ';
+                        description = ' ';
+                        cardColor = Colors.white;
                       }
 
                       return Card(
