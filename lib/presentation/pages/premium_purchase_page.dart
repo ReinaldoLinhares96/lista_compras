@@ -178,14 +178,14 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                       String description;
                       Color cardColor;
 
-                      if (product.id == 'fortisacl.lista_compras.premium') {
+                      if (product.id == 'fortisacl-lista-compras-premium1008') {
                         title = 'Plano Premium Mensal';
                         description =
                             'Acesso total a todos os recursos Premium, com flexibilidade de renovação mensal.';
                         cardColor = Colors.lightBlue.shade100;
                       }
 
-                      if (product.id == 'fortisacl.lista_compras.anual') {
+                      if (product.id == 'lista-compras-anual-basic-1008') {
                         title = 'Plano Premium Anual';
                         description =
                             'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.';
