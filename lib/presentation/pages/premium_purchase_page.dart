@@ -22,32 +22,19 @@ class PremiumPurchasePage extends StatefulWidget {
 
 class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
-  late StreamSubscription<List<PurchaseDetails>> _subscription;
   List<ProductDetails> _products = [];
   bool _isAvailable = false;
   bool _purchasePending = false;
   String? _queryProductError;
 
   @override
-  void initState() {
+  Future<void> initState() async {
     super.initState();
     _initStoreInfo();
-    _subscription = _inAppPurchase.purchaseStream.listen(
-      (purchaseDetailsList) {
-        _listenToPurchaseUpdated(purchaseDetailsList);
-      },
-      onDone: () {
-        _subscription.cancel();
-      },
-      onError: (Object error) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro na compra: $error')));
-        setState(() {
-          _purchasePending = false;
-        });
-      },
-    );
+    _inAppPurchase.purchaseStream.listen((purchaseDetailsList) {
+      _listenToPurchaseUpdated(purchaseDetailsList);
+    });
+    await _inAppPurchase.restorePurchases();
   }
 
   Future<void> _initStoreInfo() async {
@@ -149,7 +136,6 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
 
   @override
   void dispose() {
-    _subscription.cancel();
     super.dispose();
   }
 
