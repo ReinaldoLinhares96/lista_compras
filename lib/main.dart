@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:lista_compras/data/models/log_model.dart';
 import 'package:lista_compras/data/models/orcamento_model.dart';
 import 'package:lista_compras/data/models/premium_status_model.dart';
 
@@ -37,6 +38,7 @@ void main() async {
   Hive.registerAdapter(CompraStatusModelAdapter());
   Hive.registerAdapter(OrcamentoModelAdapter());
   Hive.registerAdapter(PremiumStatusModelAdapter());
+  Hive.registerAdapter(LogModelAdapter());
 
   // ABRA AS CAIXAS (BOXES) QUE VOCÊ VAI USAR NO SEU APLICATIVO
   await Hive.openBox<ProdutoModel>('produtosBox');
@@ -46,6 +48,7 @@ void main() async {
   await Hive.openBox<CompraStatusModel>('compraStatusBox');
   await Hive.openBox<double>('orcamentoBox');
   await Hive.openBox<bool>('premiumStatusBox');
+  await Hive.openBox<bool>('logBox');
 
   // Inicialização de repositórios que ainda gerenciam dados padrão.
   await CompraStatusRepository().initializeDefaultCompraStatus();
