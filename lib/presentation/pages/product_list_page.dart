@@ -23,7 +23,7 @@ import 'package:lista_compras/presentation/widgets/add_categoria_modal.dart';
 // NOVOS IMPORTS PARA AS PÁGINAS DE GERENCIAMENTO
 import 'package:lista_compras/presentation/pages/categoria_management_page.dart';
 import 'package:lista_compras/presentation/pages/purchase_history_page.dart';
-
+import 'package:lista_compras/presentation/pages/log_screen.dart';
 import 'package:lista_compras/services/ad_manager.dart';
 
 // ignore_for_file: unused_field, no_leading_underscores_for_local_identifiers, use_build_context_synchronously, unused_import, unused_element, duplicate_ignore
@@ -230,6 +230,20 @@ class _ProductListPageState extends State<ProductListPage> {
                       ),
                       onTap: null, // Desabilitar se já for premium
                     ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.bug_report),
+                    title: const Text('Visualizar Logs'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LogScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             );

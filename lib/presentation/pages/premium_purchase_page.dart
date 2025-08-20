@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:lista_compras/data/repositories/log_repository.dart';
 import 'package:provider/provider.dart';
 import '../../data/repositories/premium_status_repository.dart';
 
@@ -21,6 +22,7 @@ class PremiumPurchasePage extends StatefulWidget {
 }
 
 class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
+  final LogRepository _logRepository = LogRepository();
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   List<ProductDetails> _products = [];
   bool _isAvailable = false;
@@ -31,18 +33,42 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   Future<void> initState() async {
     super.initState();
     _initStoreInfo();
+    _logRepository.addLog(
+      message: _inAppPurchase.purchaseStream.toList().toString(),
+      level: 'initState - 01',
+    );
     _inAppPurchase.purchaseStream.listen((purchaseDetailsList) {
       _listenToPurchaseUpdated(purchaseDetailsList);
     });
+    _logRepository.addLog(
+      message: _purchasePending.toString(),
+      level: 'initState - _purchasePending',
+    );
+    _logRepository.addLog(
+      message: _inAppPurchase.purchaseStream.toList().toString(),
+      level: 'initState - 02',
+    );
     await _inAppPurchase.restorePurchases();
+    _logRepository.addLog(
+      message: _inAppPurchase.purchaseStream.toList().toString(),
+      level: 'initState - 03',
+    );
   }
 
   Future<void> _initStoreInfo() async {
     _isAvailable = await _inAppPurchase.isAvailable();
+    _logRepository.addLog(
+      message: _isAvailable.toString(),
+      level: '_initStoreInfo - _isAvailable',
+    );
     if (!_isAvailable) {
       setState(() {
         _queryProductError = 'A loja de aplicativos não está disponível.';
       });
+      _logRepository.addLog(
+        message: _queryProductError.toString(),
+        level: '_initStoreInfo - _queryProductError',
+      );
       return;
     }
 
@@ -62,18 +88,21 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
         _queryProductError =
             'Nenhum produto encontrado. Verifique os IDs dos produtos.';
       });
+      _logRepository.addLog(
+        message: _queryProductError.toString(),
+        level: '_initStoreInfo - _queryProductError 2',
+      );
       return;
     }
 
     setState(() {
       _products = productDetailsResponse.productDetails;
     });
-  }
 
-  bool _isFreeTrial(PurchaseDetails purchase) {
-    return purchase.productID.contains('premium') &&
-        purchase.status == PurchaseStatus.purchased &&
-        purchase.pendingCompletePurchase;
+    _logRepository.addLog(
+      message: _products.toList().toString(),
+      level: '_initStoreInfo - productDetailsResponse.productDetails',
+    );
   }
 
   Future<void> _listenToPurchaseUpdated(
@@ -85,6 +114,16 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     );
 
     for (final purchaseDetails in purchaseDetailsList) {
+      _logRepository.addLog(
+        message: purchaseDetails.toString(),
+        level: '_listenToPurchaseUpdated - purchaseDetails',
+      );
+
+      _logRepository.addLog(
+        message: purchaseDetails.status.toString(),
+        level: '_listenToPurchaseUpdated - purchaseDetails.status',
+      );
+
       if (purchaseDetails.status == PurchaseStatus.pending) {
         setState(() {
           _purchasePending = true;
@@ -99,9 +138,11 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
             ),
           );
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
-            purchaseDetails.status == PurchaseStatus.restored ||
-            (purchaseDetails.status == PurchaseStatus.pending &&
-                _isFreeTrial(purchaseDetails))) {
+            purchaseDetails.status == PurchaseStatus.restored) {
+          _logRepository.addLog(
+            message: purchaseDetails.status.toString(),
+            level: '_listenToPurchaseUpdated - IF PurchaseStatus.purchased',
+          );
           await _deliverProduct(purchaseDetails, premiumStatusRepository);
         }
 
@@ -119,7 +160,18 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     PurchaseDetails purchaseDetails,
     PremiumStatusRepository premiumStatusRepository,
   ) async {
+    _logRepository.addLog(
+      message: 'Entrou em _deliverProduct',
+      level: '_deliverProduct - purchaseDetails',
+    );
+
     await premiumStatusRepository.updatePremiumStatus(true);
+
+    _logRepository.addLog(
+      message: 'updatePremiumStatus finalizado',
+      level: '_deliverProduct - updatePremiumStatus(true)',
+    );
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Parabéns! Você agora é Premium!')),
     );
@@ -127,11 +179,34 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   }
 
   void _buyProduct(ProductDetails product) {
+    _logRepository.addLog(
+      message: 'Entrou em _buyProduct',
+      level: '_buyProduct - 01',
+    );
+
+    _logRepository.addLog(
+      message: product.toString(),
+      level: '_deliverProduct - product',
+    );
+
+    _logRepository.addLog(
+      message: product.id.toString(),
+      level: '_deliverProduct - product.id',
+    );
     final purchaseParam = PurchaseParam(productDetails: product);
+
+    _logRepository.addLog(
+      message: purchaseParam.toString(),
+      level: '_deliverProduct - purchaseParam',
+    );
     _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
     setState(() {
       _purchasePending = true;
     });
+    _logRepository.addLog(
+      message: _purchasePending.toString(),
+      level: '_deliverProduct - _purchasePending',
+    );
   }
 
   @override
@@ -177,9 +252,9 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                             'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.';
                         cardColor = Colors.lightGreen.shade100;
                       } else {
-                        title = ' ';
-                        description = ' ';
-                        cardColor = Colors.white;
+                        title = product.id.toString();
+                        description = product.title.toString();
+                        cardColor = Colors.red.shade100;
                       }
 
                       return Card(
