@@ -22,7 +22,7 @@ class PremiumPurchasePage extends StatefulWidget {
 }
 
 class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
-  final LogRepository _logRepository = LogRepository();
+  late final LogRepository _logRepository;
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   List<ProductDetails> _products = [];
   bool _isAvailable = false;
@@ -32,6 +32,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   @override
   Future<void> initState() async {
     super.initState();
+    _logRepository = Provider.of<LogRepository>(context, listen: false);
     _initStoreInfo();
     _logRepository.addLog(
       message: _inAppPurchase.purchaseStream.toList().toString(),
