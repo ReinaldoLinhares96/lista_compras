@@ -16,6 +16,7 @@ import 'package:lista_compras/data/repositories/categoria_repository.dart';
 
 // Repositórios necessários para inicialização de dados padrão (se aplicável no Hive)
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
+import 'package:lista_compras/data/repositories/log_repository.dart';
 import 'package:lista_compras/data/repositories/orcamento_repository.dart';
 import 'package:lista_compras/data/repositories/premium_status_repository.dart';
 
@@ -48,13 +49,14 @@ void main() async {
   await Hive.openBox<CompraStatusModel>('compraStatusBox');
   await Hive.openBox<double>('orcamentoBox');
   await Hive.openBox<bool>('premiumStatusBox');
-  await Hive.openBox<bool>('logBox');
+  await Hive.openBox<LogModel>('logBox');
 
   // Inicialização de repositórios que ainda gerenciam dados padrão.
   await CompraStatusRepository().initializeDefaultCompraStatus();
   await OrcamentoRepository().initializeDefaultOrcamento();
   await CategoriaRepository().initializeDefaultCategoria();
   await PremiumStatusRepository().initializeDefaultPremiumStatus();
+  await LogRepository().initializeDefaultLog();
 
   runApp(const MyApp());
 }

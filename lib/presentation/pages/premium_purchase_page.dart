@@ -9,10 +9,7 @@ import 'package:provider/provider.dart';
 import '../../data/repositories/premium_status_repository.dart';
 
 // IDs dos seus produtos configurados nas lojas
-const Set<String> _kProductIds = {
-  'fortisacl.lista_compras.anual',
-  'fortisacl.lista_compras.premium',
-};
+const Set<String> _kProductIds = {'fortisacl.lista_compras.premium'};
 
 class PremiumPurchasePage extends StatefulWidget {
   const PremiumPurchasePage({super.key});
@@ -35,7 +32,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     _logRepository = Provider.of<LogRepository>(context, listen: false);
     _initStoreInfo();
     _logRepository.addLog(
-      message: _inAppPurchase.purchaseStream.toList().toString(),
+      message: _inAppPurchase.purchaseStream.first.toString(),
       level: 'initState - 01',
     );
     _inAppPurchase.purchaseStream.listen((purchaseDetailsList) {
@@ -116,8 +113,15 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
 
     for (final purchaseDetails in purchaseDetailsList) {
       _logRepository.addLog(
-        message: purchaseDetails.toString(),
-        level: '_listenToPurchaseUpdated - purchaseDetails',
+        message:
+            'Compra recebida: '
+            'productID = ${purchaseDetails.productID}, '
+            'purchaseID = ${purchaseDetails.purchaseID}, '
+            'pendingCompletePurchase = ${purchaseDetails.pendingCompletePurchase}, '
+            'status = ${purchaseDetails.status}'
+            'error? = ${purchaseDetails.error}',
+        level:
+            '_listenToPurchaseUpdated - productDetailsResponse.productDetails',
       );
 
       _logRepository.addLog(
@@ -145,10 +149,9 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
             level: '_listenToPurchaseUpdated - IF PurchaseStatus.purchased',
           );
           await _deliverProduct(purchaseDetails, premiumStatusRepository);
-        }
-
-        if (purchaseDetails.pendingCompletePurchase) {
-          await _inAppPurchase.completePurchase(purchaseDetails);
+          if (purchaseDetails.pendingCompletePurchase) {
+            await _inAppPurchase.completePurchase(purchaseDetails);
+          }
         }
       }
     }
