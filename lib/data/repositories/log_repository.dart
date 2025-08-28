@@ -1,12 +1,21 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/log_model.dart';
 import 'package:rxdart/rxdart.dart';
 
 class LogRepository {
   late Box<LogModel> _logBox;
+  static const _logMessageInit = 'Primeiro log';
 
   LogRepository() {
     _logBox = Hive.box<LogModel>('logBox');
+  }
+
+  Future<void> initializeDefaultLog() async {
+    if (_logBox.isEmpty) {
+      addLog(message: _logMessageInit, level: 'init');
+    }
   }
 
   // Adiciona uma nova entrada de log
