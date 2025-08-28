@@ -24,6 +24,7 @@ import 'package:lista_compras/data/repositories/premium_status_repository.dart';
 import 'package:lista_compras/presentation/pages/product_list_page.dart'; // CORREÇÃO AQUI
 
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,9 +57,15 @@ void main() async {
   await OrcamentoRepository().initializeDefaultOrcamento();
   await CategoriaRepository().initializeDefaultCategoria();
   await PremiumStatusRepository().initializeDefaultPremiumStatus();
-  await LogRepository().initializeDefaultLog();
+  final logRepository = LogRepository();
+  await logRepository.initializeDefaultLog();
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [Provider<LogRepository>.value(value: logRepository)],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

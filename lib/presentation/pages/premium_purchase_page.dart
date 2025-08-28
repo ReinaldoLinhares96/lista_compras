@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, unused_element
+// ignore_for_file: use_build_context_synchronously, unused_element, unnecessary_brace_in_string_interps
 
 import 'dart:async';
 
@@ -31,47 +31,36 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     super.initState();
     _logRepository = Provider.of<LogRepository>(context, listen: false);
     _initStoreInfo();
-    _logRepository.addLog(
-      message: _inAppPurchase.purchaseStream.first.toString(),
-      level: 'initState - 01',
-    );
+
     _inAppPurchase.purchaseStream.listen((purchaseDetailsList) {
       _listenToPurchaseUpdated(purchaseDetailsList);
     });
-    _logRepository.addLog(
-      message: _purchasePending.toString(),
-      level: 'initState - _purchasePending',
-    );
-    _logRepository.addLog(
-      message: _inAppPurchase.purchaseStream.toList().toString(),
-      level: 'initState - 02',
-    );
+
     await _inAppPurchase.restorePurchases();
-    _logRepository.addLog(
-      message: _inAppPurchase.purchaseStream.toList().toString(),
-      level: 'initState - 03',
-    );
   }
 
   Future<void> _initStoreInfo() async {
     _isAvailable = await _inAppPurchase.isAvailable();
+
     _logRepository.addLog(
-      message: _isAvailable.toString(),
-      level: '_initStoreInfo - _isAvailable',
+      '_isAvailable = ${_isAvailable}',
+      level: '_initStoreInfo',
     );
+
     if (!_isAvailable) {
       setState(() {
         _queryProductError = 'A loja de aplicativos não está disponível.';
       });
-      _logRepository.addLog(
-        message: _queryProductError.toString(),
-        level: '_initStoreInfo - _queryProductError',
-      );
       return;
     }
 
     final productDetailsResponse = await _inAppPurchase.queryProductDetails(
       _kProductIds,
+    );
+
+    _logRepository.addLog(
+      '_kProductIds = ${_kProductIds.toList()}',
+      level: '_initStoreInfo',
     );
 
     if (productDetailsResponse.error != null) {
@@ -86,10 +75,6 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
         _queryProductError =
             'Nenhum produto encontrado. Verifique os IDs dos produtos.';
       });
-      _logRepository.addLog(
-        message: _queryProductError.toString(),
-        level: '_initStoreInfo - _queryProductError 2',
-      );
       return;
     }
 
@@ -98,8 +83,8 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     });
 
     _logRepository.addLog(
-      message: _products.toList().toString(),
-      level: '_initStoreInfo - productDetailsResponse.productDetails',
+      '_products (productDetailsResponse.productDetails) = ${_products.toList()}',
+      level: '_initStoreInfo',
     );
   }
 
@@ -113,20 +98,14 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
 
     for (final purchaseDetails in purchaseDetailsList) {
       _logRepository.addLog(
-        message:
-            'Compra recebida: '
-            'productID = ${purchaseDetails.productID}, '
-            'purchaseID = ${purchaseDetails.purchaseID}, '
-            'pendingCompletePurchase = ${purchaseDetails.pendingCompletePurchase}, '
-            'status = ${purchaseDetails.status}'
-            'error? = ${purchaseDetails.error}',
+        'Compra recebida: '
+        'productID = ${purchaseDetails.productID}, '
+        'purchaseID = ${purchaseDetails.purchaseID}, '
+        'pendingCompletePurchase = ${purchaseDetails.pendingCompletePurchase}, '
+        'status = ${purchaseDetails.status}'
+        'error? = ${purchaseDetails.error}',
         level:
             '_listenToPurchaseUpdated - productDetailsResponse.productDetails',
-      );
-
-      _logRepository.addLog(
-        message: purchaseDetails.status.toString(),
-        level: '_listenToPurchaseUpdated - purchaseDetails.status',
       );
 
       if (purchaseDetails.status == PurchaseStatus.pending) {
@@ -144,10 +123,6 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
           );
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
-          _logRepository.addLog(
-            message: purchaseDetails.status.toString(),
-            level: '_listenToPurchaseUpdated - IF PurchaseStatus.purchased',
-          );
           await _deliverProduct(purchaseDetails, premiumStatusRepository);
           if (purchaseDetails.pendingCompletePurchase) {
             await _inAppPurchase.completePurchase(purchaseDetails);
@@ -165,15 +140,15 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     PremiumStatusRepository premiumStatusRepository,
   ) async {
     _logRepository.addLog(
-      message: 'Entrou em _deliverProduct',
-      level: '_deliverProduct - purchaseDetails',
+      'isPremium antes = ${premiumStatusRepository.isPremium}',
+      level: '_deliverProduct',
     );
 
     await premiumStatusRepository.updatePremiumStatus(true);
 
     _logRepository.addLog(
-      message: 'updatePremiumStatus finalizado',
-      level: '_deliverProduct - updatePremiumStatus(true)',
+      'isPremium depois = ${premiumStatusRepository.isPremium}',
+      level: '_deliverProduct',
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -184,33 +159,24 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
 
   void _buyProduct(ProductDetails product) {
     _logRepository.addLog(
-      message: 'Entrou em _buyProduct',
-      level: '_buyProduct - 01',
+      'productID = ${product.id}, '
+      'title = ${product.title}, '
+      'currencyCode = ${product.currencyCode}, '
+      'currencySymbol = ${product.currencySymbol}',
+      level: '_buyProduct',
     );
 
-    _logRepository.addLog(
-      message: product.toString(),
-      level: '_deliverProduct - product',
-    );
-
-    _logRepository.addLog(
-      message: product.id.toString(),
-      level: '_deliverProduct - product.id',
-    );
     final purchaseParam = PurchaseParam(productDetails: product);
 
     _logRepository.addLog(
-      message: purchaseParam.toString(),
-      level: '_deliverProduct - purchaseParam',
+      'applicationUserName = ${purchaseParam.applicationUserName}, '
+      'productID = ${purchaseParam.productDetails.id}.',
+      level: '_buyProduct',
     );
     _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
     setState(() {
       _purchasePending = true;
     });
-    _logRepository.addLog(
-      message: _purchasePending.toString(),
-      level: '_deliverProduct - _purchasePending',
-    );
   }
 
   @override
@@ -243,15 +209,15 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                       String description;
                       Color cardColor;
 
-                      if (product.id == 'fortisacl-lista-compras-premium1008') {
-                        title = 'Plano Premium Mensal';
+                      if (product.price.length <= 5) {
+                        title = 'Plano Premium Mensal ${product.price.length}';
                         description =
                             'Acesso total a todos os recursos Premium, com flexibilidade de renovação mensal.';
                         cardColor = Colors.lightBlue.shade100;
                       }
 
-                      if (product.id == 'lista-compras-anual-basic-1008') {
-                        title = 'Plano Premium Anual';
+                      if (product.price.length >= 6) {
+                        title = 'Plano Premium Anual ${product.price.length}';
                         description =
                             'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.';
                         cardColor = Colors.lightGreen.shade100;

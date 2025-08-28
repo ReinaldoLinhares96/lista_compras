@@ -8,7 +8,7 @@ part of 'log_model.dart';
 
 class LogModelAdapter extends TypeAdapter<LogModel> {
   @override
-  final int typeId = 8;
+  final int typeId = 31;
 
   @override
   LogModel read(BinaryReader reader) {
@@ -17,24 +17,21 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return LogModel(
-      id: fields[0] as String?,
-      message: fields[1] as String,
-      level: fields[2] as String,
-      timestamp: fields[3] as DateTime?,
+      message: fields[0] as String,
+      level: fields[1] as String,
+      timestamp: fields[2] as DateTime,
     );
   }
 
   @override
   void write(BinaryWriter writer, LogModel obj) {
     writer
-      ..writeByte(4)
-      ..writeByte(0)
-      ..write(obj.id)
-      ..writeByte(1)
-      ..write(obj.message)
-      ..writeByte(2)
-      ..write(obj.level)
       ..writeByte(3)
+      ..writeByte(0)
+      ..write(obj.message)
+      ..writeByte(1)
+      ..write(obj.level)
+      ..writeByte(2)
       ..write(obj.timestamp);
   }
 
