@@ -1,12 +1,11 @@
-// ignore_for_file: depend_on_referenced_packages
+// ignore_for_file: no_leading_underscores_for_local_identifiers, depend_on_referenced_packages
 
 import 'package:hive_flutter/hive_flutter.dart';
-import '../models/log_model.dart';
 import 'package:rxdart/rxdart.dart';
+import '../models/log_model.dart';
 
 class LogRepository {
-  late Box<LogModel> _logBox;
-  static const _logMessageInit = 'Primeiro log';
+  late final Box<LogModel> _logBox;
 
   LogRepository() {
     _logBox = Hive.box<LogModel>('logBox');
@@ -14,33 +13,31 @@ class LogRepository {
 
   Future<void> initializeDefaultLog() async {
     if (_logBox.isEmpty) {
-      addLog(message: _logMessageInit, level: 'init');
+      await addLog('Primeiro log', level: 'info');
     }
   }
 
-  // Adiciona uma nova entrada de log
-  Future<void> addLog({required String message, required String level}) async {
-    final newLog = LogModel(message: message, level: level);
-    await _logBox.put(newLog.id, newLog);
+  Future<void> addLog(String message, {String level = 'debug'}) async {
+    await _logBox.add(
+      LogModel(message: message, level: level, timestamp: DateTime.now()),
+    );
   }
 
-  // Retorna um Stream com a lista de todos os logs, ordenados por timestamp
-  Stream<List<LogModel>> getLogs() {
+  /// Stream que:
+  /// 1) começa com o estado atual (startWith)
+  /// 2) emite uma nova lista ordenada sempre que o box muda
+  Stream<List<LogModel>> watchAll() {
+    List<LogModel> _sorted() {
+      final list = _logBox.values.toList();
+      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return list;
+    }
+
     return _logBox
-        .watch()
-        .map((event) {
-          final allLogs = _logBox.values.toList();
-          allLogs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          return allLogs;
-        })
-        .startWith(
-          _logBox.values.toList()
-            ..sort((a, b) => b.timestamp.compareTo(a.timestamp)),
-        );
+        .watch() // eventos de add/put/delete
+        .map((_) => _sorted())
+        .startWith(_sorted());
   }
 
-  // Limpa todos os logs
-  Future<void> clearLogs() async {
-    await _logBox.clear();
-  }
+  Future<void> clearLogs() async => _logBox.clear();
 }
