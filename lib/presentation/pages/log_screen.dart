@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/log_model.dart';
 import 'package:lista_compras/data/repositories/log_repository.dart';
-import 'package:provider/provider.dart';
 
 class LogScreen extends StatelessWidget {
   const LogScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final repo = context.read<LogRepository>();
+    final repo = LogRepository.instance;
 
     return Scaffold(
       appBar: AppBar(
@@ -21,20 +20,16 @@ class LogScreen extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () async => repo.addLog('Log de teste', level: 'debug'),
-            tooltip: 'Adicionar log de teste',
+            onPressed: () async => repo.addLog('Log de teste'),
+            tooltip: 'Adicionar log',
           ),
         ],
       ),
       body: StreamBuilder<List<LogModel>>(
         stream: repo.watchAll(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          final logs = snapshot.data ?? [];
 
-          final logs = snapshot.data ?? const <LogModel>[];
           if (logs.isEmpty) {
             return const Center(child: Text('Nenhum log ainda.'));
           }
