@@ -5,7 +5,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:lista_compras/data/repositories/log_repository.dart';
-import 'package:provider/provider.dart';
 import '../../data/repositories/premium_status_repository.dart';
 
 // IDs dos seus produtos configurados nas lojas
@@ -21,21 +20,45 @@ class PremiumPurchasePage extends StatefulWidget {
 class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   final LogRepository _logRepository = LogRepository.instance;
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
+  final PremiumStatusRepository _premiumStatusRepository =
+      PremiumStatusRepository.instance;
   List<ProductDetails> _products = [];
   bool _isAvailable = false;
   bool _purchasePending = false;
   String? _queryProductError;
 
   @override
-  Future<void> initState() async {
+  void initState() {
     super.initState();
+
+    // inicia a loja
     _initStoreInfo();
 
-    _inAppPurchase.purchaseStream.listen((purchaseDetailsList) {
-      _listenToPurchaseUpdated(purchaseDetailsList);
-    });
+    // ouve compras
+    _listenPurchase();
 
-    await _inAppPurchase.restorePurchases();
+    // restaura compras sem await
+    _restorePurchases();
+  }
+
+  Future<void> _listenPurchase() async {
+    try {
+      _inAppPurchase.purchaseStream.listen((purchaseDetailsList) {
+        _listenToPurchaseUpdated(purchaseDetailsList);
+      });
+    } catch (e) {
+      // logar ou mostrar erro
+      _logRepository.addLog("Erro ao restaurar compras: $e");
+    }
+  }
+
+  Future<void> _restorePurchases() async {
+    try {
+      await _inAppPurchase.restorePurchases();
+    } catch (e) {
+      // logar ou mostrar erro
+      _logRepository.addLog("Erro ao restaurar compras: $e");
+    }
   }
 
   Future<void> _initStoreInfo() async {
@@ -90,11 +113,6 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   Future<void> _listenToPurchaseUpdated(
     List<PurchaseDetails> purchaseDetailsList,
   ) async {
-    final premiumStatusRepository = Provider.of<PremiumStatusRepository>(
-      context,
-      listen: false,
-    );
-
     for (final purchaseDetails in purchaseDetailsList) {
       _logRepository.addLog(
         'Compra recebida: '
@@ -122,7 +140,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
           );
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
-          await _deliverProduct(purchaseDetails, premiumStatusRepository);
+          await _deliverProduct(purchaseDetails);
           if (purchaseDetails.pendingCompletePurchase) {
             await _inAppPurchase.completePurchase(purchaseDetails);
           }
@@ -134,19 +152,16 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     });
   }
 
-  Future<void> _deliverProduct(
-    PurchaseDetails purchaseDetails,
-    PremiumStatusRepository premiumStatusRepository,
-  ) async {
+  Future<void> _deliverProduct(PurchaseDetails purchaseDetails) async {
     _logRepository.addLog(
-      'isPremium antes = ${premiumStatusRepository.isPremium}',
+      'isPremium antes = ${_premiumStatusRepository.isPremium}',
       level: '_deliverProduct',
     );
 
-    await premiumStatusRepository.updatePremiumStatus(true);
+    await _premiumStatusRepository.updatePremiumStatus(true);
 
     _logRepository.addLog(
-      'isPremium depois = ${premiumStatusRepository.isPremium}',
+      'isPremium depois = ${_premiumStatusRepository.isPremium}',
       level: '_deliverProduct',
     );
 
