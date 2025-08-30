@@ -5,13 +5,14 @@ import 'package:rxdart/rxdart.dart';
 import '../models/log_model.dart';
 
 class LogRepository {
+  static final LogRepository instance = LogRepository._internal();
+
   late final Box<LogModel> _logBox;
 
-  LogRepository() {
-    _logBox = Hive.box<LogModel>('logBox');
-  }
+  LogRepository._internal();
 
-  Future<void> initializeDefaultLog() async {
+  Future<void> init() async {
+    _logBox = Hive.box<LogModel>('logBox');
     if (_logBox.isEmpty) {
       await addLog('Primeiro log', level: 'info');
     }
@@ -23,9 +24,6 @@ class LogRepository {
     );
   }
 
-  /// Stream que:
-  /// 1) começa com o estado atual (startWith)
-  /// 2) emite uma nova lista ordenada sempre que o box muda
   Stream<List<LogModel>> watchAll() {
     List<LogModel> _sorted() {
       final list = _logBox.values.toList();
@@ -33,10 +31,7 @@ class LogRepository {
       return list;
     }
 
-    return _logBox
-        .watch() // eventos de add/put/delete
-        .map((_) => _sorted())
-        .startWith(_sorted());
+    return _logBox.watch().map((_) => _sorted()).startWith(_sorted());
   }
 
   Future<void> clearLogs() async => _logBox.clear();
