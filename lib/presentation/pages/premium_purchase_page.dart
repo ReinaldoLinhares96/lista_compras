@@ -30,18 +30,12 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   @override
   void initState() {
     super.initState();
-
-    // inicia a loja
-    _initStoreInfo();
-
-    // ouve compras
-    _listenPurchase();
-
-    // restaura compras sem await
-    _restorePurchases();
+    _init();
   }
 
-  Future<void> _listenPurchase() async {
+  Future<void> _init() async {
+    await _initStoreInfo();
+
     try {
       _inAppPurchase.purchaseStream.listen((purchaseDetailsList) {
         _listenToPurchaseUpdated(purchaseDetailsList);
@@ -50,6 +44,8 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
       // logar ou mostrar erro
       _logRepository.addLog("Erro ao restaurar compras: $e");
     }
+
+    await _inAppPurchase.restorePurchases();
   }
 
   Future<void> _restorePurchases() async {
