@@ -18,10 +18,10 @@ class PremiumPurchasePage extends StatefulWidget {
 }
 
 class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
-  final LogRepository _logRepository = LogRepository.instance;
+  final LogRepository _logRepository = LogRepository();
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   final PremiumStatusRepository _premiumStatusRepository =
-      PremiumStatusRepository.instance;
+      PremiumStatusRepository();
   List<ProductDetails> _products = [];
   bool _isAvailable = false;
   bool _purchasePending = false;
@@ -77,8 +77,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     );
 
     _logRepository.addLog(
-      '_kProductIds = ${_kProductIds.toList()}',
-      level: '_initStoreInfo',
+      '_initStoreInfo._kProductIds = ${_kProductIds.toList()}',
     );
 
     if (productDetailsResponse.error != null) {
@@ -101,8 +100,7 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     });
 
     _logRepository.addLog(
-      '_products (productDetailsResponse.productDetails) = ${_products.toList()}',
-      level: '_initStoreInfo',
+      '_initStoreInfo._products (productDetailsResponse.productDetails) = ${_products.toList()}',
     );
   }
 
@@ -111,14 +109,13 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   ) async {
     for (final purchaseDetails in purchaseDetailsList) {
       _logRepository.addLog(
+        '_listenToPurchaseUpdated.productDetailsResponse.productDetails ='
         'Compra recebida: '
         'productID = ${purchaseDetails.productID}, '
         'purchaseID = ${purchaseDetails.purchaseID}, '
         'pendingCompletePurchase = ${purchaseDetails.pendingCompletePurchase}, '
         'status = ${purchaseDetails.status}'
         'error? = ${purchaseDetails.error}',
-        level:
-            '_listenToPurchaseUpdated - productDetailsResponse.productDetails',
       );
 
       if (purchaseDetails.status == PurchaseStatus.pending) {
@@ -150,15 +147,13 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
 
   Future<void> _deliverProduct(PurchaseDetails purchaseDetails) async {
     _logRepository.addLog(
-      'isPremium antes = ${_premiumStatusRepository.isPremium}',
-      level: '_deliverProduct',
+      '_deliverProduct.isPremium antes = ${_premiumStatusRepository.isPremium}',
     );
 
     await _premiumStatusRepository.updatePremiumStatus(true);
 
     _logRepository.addLog(
-      'isPremium depois = ${_premiumStatusRepository.isPremium}',
-      level: '_deliverProduct',
+      '_deliverProduct.isPremium depois = ${_premiumStatusRepository.isPremium}',
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -169,19 +164,19 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
 
   void _buyProduct(ProductDetails product) {
     _logRepository.addLog(
+      '_buyProduct ='
       'productID = ${product.id}, '
       'title = ${product.title}, '
       'currencyCode = ${product.currencyCode}, '
       'currencySymbol = ${product.currencySymbol}',
-      level: '_buyProduct',
     );
 
     final purchaseParam = PurchaseParam(productDetails: product);
 
     _logRepository.addLog(
+      '_buyProduct = '
       'applicationUserName = ${purchaseParam.applicationUserName}, '
       'productID = ${purchaseParam.productDetails.id}.',
-      level: '_buyProduct',
     );
     _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
     setState(() {

@@ -5,14 +5,13 @@ import 'package:rxdart/rxdart.dart';
 import '../models/log_model.dart';
 
 class LogRepository {
-  static final LogRepository instance = LogRepository._internal();
+  late Box<LogModel> _logBox;
 
-  late final Box<LogModel> _logBox;
-
-  LogRepository._internal();
-
-  Future<void> init() async {
+  LogRepository() {
     _logBox = Hive.box<LogModel>('logBox');
+  }
+
+  Future<void> initializeDefaultLog() async {
     if (_logBox.isEmpty) {
       await addLog('Primeiro log', level: 'info');
     }
