@@ -56,7 +56,7 @@ void main() async {
   await OrcamentoRepository().initializeDefaultOrcamento();
   await CategoriaRepository().initializeDefaultCategoria();
   await PremiumStatusRepository().initializeDefaultPremiumStatus();
-  await LogRepository.instance.init();
+  await LogRepository().initializeDefaultLog();
 
   runApp(const MyApp());
 }

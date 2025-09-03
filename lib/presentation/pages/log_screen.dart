@@ -7,7 +7,7 @@ class LogScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = LogRepository.instance;
+    final repo = LogRepository();
 
     return Scaffold(
       appBar: AppBar(

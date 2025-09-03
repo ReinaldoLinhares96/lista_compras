@@ -6,12 +6,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:rxdart/rxdart.dart';
 
 class PremiumStatusRepository {
-  static final PremiumStatusRepository instance =
-      PremiumStatusRepository._internal();
   late Box<bool> _premiumStatusBox;
   static const _premiumStatusKey = 'isPremium';
-
-  PremiumStatusRepository._internal();
 
   PremiumStatusRepository() {
     _premiumStatusBox = Hive.box<bool>('premiumStatusBox');
