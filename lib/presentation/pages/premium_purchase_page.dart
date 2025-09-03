@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, unused_element, unnecessary_brace_in_string_interps
+// ignore_for_file: use_build_context_synchronously, unused_element, unnecessary_brace_in_string_interps, unnecessary_string_interpolations
 
 import 'dart:async';
 
@@ -9,6 +9,10 @@ import '../../data/repositories/premium_status_repository.dart';
 
 // IDs dos seus produtos configurados nas lojas
 const Set<String> _kProductIds = {'fortisacl.lista_compras.premium'};
+const Set<String> _kBaseplanIds = {
+  'fortisacl-lista-compras-premium-anual-1008',
+  'fortisacl-lista-compras-premium1008',
+};
 
 class PremiumPurchasePage extends StatefulWidget {
   const PremiumPurchasePage({super.key});
@@ -72,12 +76,18 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
       return;
     }
 
-    final productDetailsResponse = await _inAppPurchase.queryProductDetails(
-      _kProductIds,
+    _logRepository.addLog(
+      '_initStoreInfo._kProductIds = ${_kProductIds.toList()}',
     );
 
     _logRepository.addLog(
-      '_initStoreInfo._kProductIds = ${_kProductIds.toList()}',
+      '_initStoreInfo._kBaseplanIds = ${_kBaseplanIds.toList()}',
+    );
+
+    _logRepository.addLog('_initStoreInfo._inAppPurchase = ${_inAppPurchase}');
+
+    final productDetailsResponse = await _inAppPurchase.queryProductDetails(
+      _kBaseplanIds,
     );
 
     if (productDetailsResponse.error != null) {
@@ -227,10 +237,14 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                             'Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.';
                         cardColor = Colors.lightGreen.shade100;
                       } else {
-                        title = product.id.toString();
-                        description = product.title.toString();
+                        title = '${product.id}';
+                        description = '${product.title}';
                         cardColor = Colors.red.shade100;
                       }
+
+                      title = '${product.id}';
+                      description = '${product.title}';
+                      cardColor = Colors.red.shade100;
 
                       return Card(
                         elevation: 8,
