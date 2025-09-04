@@ -13,6 +13,7 @@ import 'package:lista_compras/data/repositories/produto_repository.dart';
 
 import 'package:lista_compras/presentation/widgets/purchase_history_filter_modal.dart';
 import 'package:intl/intl.dart';
+import 'package:lista_compras/services/ad_manager.dart';
 
 class PurchaseHistoryPage extends StatefulWidget {
   const PurchaseHistoryPage({super.key});
@@ -36,10 +37,13 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
 
   PurchaseFilterData _currentFilters = PurchaseFilterData();
 
+  final _isPremium = false;
+
   @override
   void initState() {
     super.initState();
     _loadAuxiliaryData();
+    AdManager.loadInterstitialAd();
   }
 
   Future<void> _loadAuxiliaryData() async {
@@ -58,6 +62,7 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
         _allProdutos = produtos;
       });
     });
+    AdManager.showInterstitialAd(_isPremium);
   }
 
   String _formatDate(DateTime date) {

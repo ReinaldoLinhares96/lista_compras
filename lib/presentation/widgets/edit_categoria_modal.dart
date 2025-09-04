@@ -1,8 +1,10 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unused_field
 
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
+import 'package:lista_compras/data/repositories/premium_status_repository.dart';
+import 'package:lista_compras/services/ad_manager.dart';
 
 class EditCategoriaModal extends StatefulWidget {
   final CategoriaModel categoria;
@@ -15,12 +17,16 @@ class EditCategoriaModal extends StatefulWidget {
 
 class _EditCategoriaModalState extends State<EditCategoriaModal> {
   final TextEditingController _descricaoController = TextEditingController();
-
+  final PremiumStatusRepository _premiumStatusRepository =
+      PremiumStatusRepository();
   final CategoriaRepository _repository = CategoriaRepository();
+
+  final _isPremium = false;
 
   @override
   void initState() {
     super.initState();
+    AdManager.loadInterstitialAd();
     _descricaoController.text = widget.categoria.descricao;
   }
 
@@ -35,6 +41,7 @@ class _EditCategoriaModalState extends State<EditCategoriaModal> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, preencha a descrição.')),
       );
+      AdManager.maybeShowInterstitialAd(_isPremium);
       return;
     }
 
@@ -68,6 +75,7 @@ class _EditCategoriaModalState extends State<EditCategoriaModal> {
             ),
           ),
         );
+        AdManager.showInterstitialAd(_isPremium);
         Navigator.pop(context);
       }
     } catch (e) {

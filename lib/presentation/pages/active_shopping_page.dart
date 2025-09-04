@@ -70,6 +70,8 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
       });
     });
 
+    AdManager.loadInterstitialAd();
+
     _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
         .listen((isPremium) {
           setState(() {
@@ -159,7 +161,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Nova compra iniciada!')));
-        AdManager.maybeShowInterstitialAd(_isPremium);
+        AdManager.showInterstitialAd(_isPremium);
       }
     } catch (e) {
       if (mounted) {
@@ -183,6 +185,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(message)));
+              AdManager.maybeShowInterstitialAd(_isPremium);
             }
           },
           compraRepository: _compraRepository,
@@ -207,6 +210,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${item.nomeProduto} removido do carrinho.')),
         );
+        AdManager.showInterstitialAd(_isPremium);
       }
     } catch (e) {
       if (mounted) {
@@ -229,6 +233,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(message)));
+              AdManager.showInterstitialAd(_isPremium);
             }
           },
           itemCompraRepository: _itemCompraRepository,
@@ -360,7 +365,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
             const SnackBar(content: Text('Compra finalizada com sucesso!')),
           );
         }
-        AdManager.maybeShowInterstitialAd(_isPremium);
+        AdManager.showInterstitialAd(_isPremium);
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -423,7 +428,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Compra cancelada com sucesso!')),
           );
-          AdManager.maybeShowInterstitialAd(_isPremium);
+          AdManager.showInterstitialAd(_isPremium);
         }
       } catch (e) {
         if (mounted) {

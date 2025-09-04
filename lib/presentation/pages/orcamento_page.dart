@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lista_compras/services/ad_manager.dart';
 import '../../data/models/orcamento_model.dart';
 import '../../data/repositories/orcamento_repository.dart';
 
@@ -12,10 +13,12 @@ class OrcamentoPage extends StatefulWidget {
 class _OrcamentoPageState extends State<OrcamentoPage> {
   final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
   final TextEditingController _orcamentoController = TextEditingController();
+  final _isPremium = false;
 
   @override
   void initState() {
     super.initState();
+    AdManager.loadInterstitialAd();
     _orcamentoRepository.getOrcamento().listen((orcamento) {
       if (_orcamentoController.text !=
           orcamento.valorMaximo.toStringAsFixed(2).replaceAll('.', ',')) {
@@ -42,6 +45,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
           content: Text('Por favor, insira um valor válido para o orçamento.'),
         ),
       );
+      AdManager.maybeShowInterstitialAd(_isPremium);
       return;
     }
 
@@ -51,6 +55,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Orçamento atualizado com sucesso!')),
         );
+        AdManager.showInterstitialAd(_isPremium);
         FocusScope.of(context).unfocus();
       }
     } catch (e) {
@@ -58,6 +63,7 @@ class _OrcamentoPageState extends State<OrcamentoPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erro ao salvar orçamento: $e')));
+        AdManager.maybeShowInterstitialAd(_isPremium);
       }
     }
   }
