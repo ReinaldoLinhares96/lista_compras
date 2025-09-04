@@ -8,10 +8,9 @@ import 'package:lista_compras/data/repositories/log_repository.dart';
 import '../../data/repositories/premium_status_repository.dart';
 
 // IDs dos seus produtos configurados nas lojas
-const Set<String> _kProductIds = {'fortisacl.lista_compras.premium'};
-const Set<String> _kBaseplanIds = {
-  'fortisacl-lista-compras-premium-anual-1008',
-  'fortisacl-lista-compras-premium1008',
+const Set<String> _kProductIds = {
+  'fortisacl.lista_compras.premium',
+  'fortisacl.lista_compras.anual',
 };
 
 class PremiumPurchasePage extends StatefulWidget {
@@ -80,14 +79,10 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
       '_initStoreInfo._kProductIds = ${_kProductIds.toList()}',
     );
 
-    _logRepository.addLog(
-      '_initStoreInfo._kBaseplanIds = ${_kBaseplanIds.toList()}',
-    );
-
     _logRepository.addLog('_initStoreInfo._inAppPurchase = ${_inAppPurchase}');
 
     final productDetailsResponse = await _inAppPurchase.queryProductDetails(
-      _kBaseplanIds,
+      _kProductIds,
     );
 
     if (productDetailsResponse.error != null) {
