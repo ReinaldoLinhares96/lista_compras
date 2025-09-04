@@ -205,45 +205,45 @@ class _ProductListPageState extends State<ProductListPage> {
                       );
                     },
                   ),
-                  const Divider(),
-                  if (!_isPremium)
-                    ListTile(
-                      leading: const Icon(Icons.star),
-                      title: const Text('Ser Premium Agora!'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        AdManager.maybeShowInterstitialAd(_isPremium);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PremiumPurchasePage(),
-                          ),
-                        );
-                      },
-                    )
-                  else
-                    ListTile(
-                      leading: const Icon(Icons.star),
-                      title: const Text(
-                        'Você já é Premium!',
-                        style: TextStyle(color: Colors.green),
-                      ),
-                      onTap: null, // Desabilitar se já for premium
-                    ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.bug_report),
-                    title: const Text('Visualizar Logs'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LogScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  // const Divider(),
+                  // if (!_isPremium)
+                  //   ListTile(
+                  //     leading: const Icon(Icons.star),
+                  //     title: const Text('Ser Premium Agora!'),
+                  //     onTap: () {
+                  //       Navigator.pop(context);
+                  //       AdManager.maybeShowInterstitialAd(_isPremium);
+                  //       Navigator.push(
+                  //         context,
+                  //         MaterialPageRoute(
+                  //           builder: (context) => const PremiumPurchasePage(),
+                  //         ),
+                  //       );
+                  //     },
+                  //   )
+                  // else
+                  //   ListTile(
+                  //     leading: const Icon(Icons.star),
+                  //     title: const Text(
+                  //       'Você já é Premium!',
+                  //       style: TextStyle(color: Colors.green),
+                  //     ),
+                  //     onTap: null, // Desabilitar se já for premium
+                  //   ),
+                  //const Divider(),
+                  //ListTile(
+                  //  leading: const Icon(Icons.bug_report),
+                  //  title: const Text('Visualizar Logs'),
+                  //  onTap: () {
+                  //    Navigator.pop(context);
+                  //    Navigator.push(
+                  //      context,
+                  //      MaterialPageRoute(
+                  //       builder: (context) => const LogScreen(),
+                  //      ),
+                  //    );
+                  //  },
+                  //),
                 ],
               ),
             );

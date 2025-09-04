@@ -67,6 +67,19 @@ class AdManager {
     }
   }
 
+  static void showInterstitialAd(bool isPremium) async {
+    if (!isPremium) {
+      if (_isInterstitialAdLoaded && _interstitialAd != null) {
+        _interstitialAd?.show();
+        _isInterstitialAdLoaded = false;
+        _interactionCount = 0;
+      } else {
+        debugPrint('Interstitial Ad not ready to show. Loading a new one.');
+        loadInterstitialAd();
+      }
+    }
+  }
+
   static void disposeAd() {
     _interstitialAd?.dispose();
     _interstitialAd = null;
