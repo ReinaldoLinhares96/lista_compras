@@ -1,170 +1,179 @@
 package com.fortisacl.lista_compras_inteligente
 
 import android.os.Bundle
-import androidx.annotation.NonNull
-import com.android.billingclient.api.*
 import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.android.billingclient.api.*
 
 class MainActivity : FlutterActivity(), PurchasesUpdatedListener {
 
+    // 1. DEFINIÇÃO DO CANAL E VARIÁVEIS
+    // O nome do canal DEVE ser exatamente o mesmo do seu service em Dart.
     private val CHANNEL = "com.fortisacl.lista_compras_inteligente/billing"
+    private lateinit var channel: MethodChannel
     private lateinit var billingClient: BillingClient
-    private var resultCallback: MethodChannel.Result? = null
 
-    override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
+    // Variável para guardar os detalhes dos produtos buscados para usar na hora da compra.
+    private var fetchedProductDetails: List<ProductDetails> = listOf()
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "getProducts" -> {
-                        val ids = call.argument<List<String>>("productIds") ?: emptyList()
-                        queryProducts(ids, result)
-                    }
-                    "buyProduct" -> {
-                        val productId = call.argument<String>("productId")
-                        if (productId != null) {
-                            launchPurchase(productId, result)
-                        } else {
-                            result.error("INVALID", "Product ID missing", null)
-                        }
-                    }
-                    "restorePurchases" -> {
-                        restorePurchases(result)
-                    }
-                    else -> result.notImplemented()
-                }
-            }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-        initBillingClient()
-    }
-
-    private fun initBillingClient() {
+        // Inicializa o BillingClient como antes
         billingClient = BillingClient.newBuilder(this)
             .setListener(this)
             .enablePendingPurchases()
             .build()
+
+        startBillingConnection()
+
+        // 2. CONFIGURAÇÃO DO METHODCHANNEL PARA "OUVIR" O DART
+        channel = MethodChannel(flutterEngine!!.dartExecutor.binaryMessenger, CHANNEL)
+        channel.setMethodCallHandler { call, result ->
+            // `call` tem o nome do método e os argumentos (ex: productId)
+            // `result` é usado para enviar a resposta de volta ao Dart
+            when (call.method) {
+                "getProducts" -> {
+                    val productIds = call.argument<List<String>>("productIds")
+                    if (productIds.isNullOrEmpty()) {
+                        result.error("ARG_ERROR", "A lista de productIds está vazia.", null)
+                    } else {
+                        queryProductDetails(productIds, result)
+                    }
+                }
+                "buyProduct" -> {
+                    val productId = call.argument<String>("productId")
+                    if (productId.isNullOrEmpty()) {
+                        result.error("ARG_ERROR", "ProductId é nulo ou vazio.", null)
+                    } else {
+                        launchPurchaseFlow(productId, result)
+                    }
+                }
+                "restorePurchases" -> {
+                    // Lógica para restaurar compras
+                    queryPurchases(result)
+                }
+                else -> {
+                    // Informa ao Dart que o método chamado não foi implementado aqui
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    // 3. FUNÇÕES ADAPTADAS PARA RESPONDER AO DART
+
+    private fun startBillingConnection() {
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    println("BillingClient conectado com sucesso!")
+                    // Conexão bem-sucedida, pronto para receber chamadas.
                 }
             }
-
             override fun onBillingServiceDisconnected() {
-                println("BillingClient desconectado!")
+                startBillingConnection() // Tenta reconectar
             }
         })
     }
 
-    private fun queryProducts(productIds: List<String>, result: MethodChannel.Result) {
-        val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                productIds.map {
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(it)
-                        .setProductType(BillingClient.ProductType.SUBS) // Assinatura
-                        .build()
-                }
-            ).build()
+    private fun queryProductDetails(productIds: List<String>, result: MethodChannel.Result) {
+        val productList = productIds.map { productId ->
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(productId)
+                .setProductType(BillingClient.ProductType.SUBS) // ou INAPP
+                .build()
+        }
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val products = productDetailsList.map {
+        val params = QueryProductDetailsParams.newBuilder().setProductList(productList)
+
+        billingClient.queryProductDetailsAsync(params.build()) { billingResult, productDetailsList ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && !productDetailsList.isNullOrEmpty()) {
+                fetchedProductDetails = productDetailsList // Salva a lista para uso futuro
+                
+                // Transforma a lista de produtos em um formato que o Dart entenda (Map)
+                val productsMap = productDetailsList.map {
                     mapOf(
-                        "id" to it.productId,
+                        "productId" to it.productId,
                         "title" to it.title,
                         "description" to it.description,
-                        "price" to it.oneTimePurchaseOfferDetails?.formattedPrice
-                            ?: it.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
-                            ?: "N/A"
+                        "price" to (it.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice ?: "N/A")
                     )
                 }
-                result.success(products)
+                result.success(productsMap) // Envia a lista de produtos de volta ao Dart
             } else {
-                result.error("QUERY_FAILED", "Erro ao buscar produtos", null)
+                result.error("BILLING_ERROR", "Falha ao buscar produtos: ${billingResult.debugMessage}", null)
             }
         }
     }
 
-    private fun launchPurchase(productId: String, result: MethodChannel.Result) {
-        val params = QueryProductDetailsParams.newBuilder()
-            .setProductList(
-                listOf(
-                    QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(productId)
-                        .setProductType(BillingClient.ProductType.SUBS)
-                        .build()
-                )
-            ).build()
+    private fun launchPurchaseFlow(productId: String, result: MethodChannel.Result) {
+        val productDetails = fetchedProductDetails.find { it.productId == productId }
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK &&
-                productDetailsList.isNotEmpty()
-            ) {
-                val productDetails = productDetailsList[0]
-                val offerToken =
-                    productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken ?: ""
+        if (productDetails == null) {
+            result.error("PRODUCT_NOT_FOUND", "Produto '$productId' não encontrado. Busque os produtos primeiro.", null)
+            return
+        }
 
-                val flowParams = BillingFlowParams.newBuilder()
-                    .setProductDetailsParamsList(
-                        listOf(
-                            BillingFlowParams.ProductDetailsParams.newBuilder()
-                                .setProductDetails(productDetails)
-                                .setOfferToken(offerToken)
-                                .build()
-                        )
-                    )
-                    .build()
+        val offerToken = productDetails.subscriptionOfferDetails?.firstOrNull()?.offerToken
+        if (offerToken == null) {
+            result.error("OFFER_NOT_FOUND", "Nenhuma oferta encontrada para a assinatura '$productId'.", null)
+            return
+        }
+        
+        val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(productDetails)
+            .setOfferToken(offerToken)
+            .build()
 
-                val billingResultLaunch = billingClient.launchBillingFlow(this, flowParams)
-                if (billingResultLaunch.responseCode == BillingClient.BillingResponseCode.OK) {
-                    result.success("purchase_started")
-                } else {
-                    result.error("LAUNCH_FAILED", "Falha ao iniciar compra", null)
-                }
-            } else {
-                result.error("NOT_FOUND", "Produto não encontrado", null)
-            }
+        val billingFlowParams = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(listOf(productDetailsParams))
+            .build()
+
+        val billingResult = billingClient.launchBillingFlow(this, billingFlowParams)
+        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            result.success("Fluxo de compra iniciado com sucesso.")
+        } else {
+            result.error("BILLING_UNAVAILABLE", "Não foi possível iniciar o fluxo de compra. Código: ${billingResult.responseCode}", null)
         }
     }
 
-    private fun restorePurchases(result: MethodChannel.Result) {
-        billingClient.queryPurchasesAsync(
-            QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.SUBS)
-                .build()
-        ) { billingResult, purchases ->
+    private fun queryPurchases(result: MethodChannel.Result) {
+        val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS)
+        billingClient.queryPurchasesAsync(params.build()) { billingResult, purchases ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val restored = purchases.map {
-                    mapOf(
-                        "id" to it.products.joinToString(),
-                        "purchaseToken" to it.purchaseToken,
-                        "isAcknowledged" to it.isAcknowledged
-                    )
-                }
-                result.success(restored)
+                val purchaseData = purchases.map { mapOf("productId" to it.products.firstOrNull()) }
+                result.success(purchaseData)
             } else {
-                result.error("RESTORE_FAILED", "Falha ao restaurar compras", null)
+                result.error("QUERY_PURCHASES_ERROR", "Falha ao restaurar compras.", null)
             }
         }
     }
 
-    override fun onPurchasesUpdated(
-        billingResult: BillingResult,
-        purchases: MutableList<Purchase>?
-    ) {
+    // 4. LÓGICA DE ATUALIZAÇÃO E CONFIRMAÇÃO DE COMPRAS
+    // Esta parte continua a mesma
+    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
             for (purchase in purchases) {
-                println("Compra recebida: ${purchase.products}")
-                // Aqui você poderia validar no backend antes de liberar
+                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                    acknowledgePurchase(purchase)
+                }
             }
-        } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-            println("Compra cancelada pelo usuário")
+            // Opcional: Enviar evento de sucesso de volta para o Dart
+            channel.invokeMethod("purchaseSuccess", null)
         } else {
-            println("Erro na compra: ${billingResult.debugMessage}")
+            // Opcional: Enviar evento de erro/cancelamento de volta para o Dart
+            channel.invokeMethod("purchaseError", mapOf("responseCode" to billingResult.responseCode))
+        }
+    }
+
+    private fun acknowledgePurchase(purchase: Purchase) {
+        val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.purchaseToken)
+            .build()
+        billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                // Compra confirmada com sucesso!
+            }
         }
     }
 }
