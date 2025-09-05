@@ -1,4 +1,4 @@
-import java.util.Properties  
+import java.util.Properties
 import java.io.FileInputStream
 
 plugins {
@@ -8,8 +8,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keystoreProperties = Properties() 
-val keystorePropertiesFile = rootProject.file("key.properties") 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
 
 if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use {
@@ -40,8 +40,8 @@ android {
     }
 
     signingConfigs {
-        create("release") { 
-            storeFile = file("app_release.keystore") 
+        create("release") {
+            storeFile = file("app_release.keystore")
             storePassword = keystoreProperties.getProperty("storePassword")
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
@@ -51,7 +51,7 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true 
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -65,6 +65,7 @@ flutter {
 }
 
 dependencies {
-    implementation "com.android.billingclient:billing-ktx:8.0.0"
+    // CORREÇÃO: Usando a versão 7.0.0, que é a mais recente estável e
+    // cumpre a exigência do Google Play de usar a versão 6 ou superior a partir de 31/08/2025.
+    implementation("com.android.billingclient:billing-ktx:7.0.0")
 }
-
