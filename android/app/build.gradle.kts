@@ -65,7 +65,6 @@ flutter {
 }
 
 dependencies {
-    // Forçar uso da Play Billing Library 8.0.0
-    val billingVersion = "8.0.0"
-    implementation("com.android.billingclient:billing:$billingVersion")
+    implementation "com.android.billingclient:billing-ktx:8.0.0"
 }
+
