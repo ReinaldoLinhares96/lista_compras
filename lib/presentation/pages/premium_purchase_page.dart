@@ -116,8 +116,8 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
               itemCount: _products.length,
               itemBuilder: (context, index) {
                 final product = _products[index];
-                final id = product["id"] ?? "";
-                final title = product["title"] ?? "Produto";
+                final mensalId = "fortisacl.lista_compras.premium";
+                final anualId = "fortisacl.lista_compras.anual";
                 final price = product["price"] ?? "R\$ -";
 
                 return Card(
@@ -132,7 +132,9 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          title,
+                          price.toString().length == 7
+                              ? "Plano Anual"
+                              : "Plano Mensal",
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
@@ -140,12 +142,24 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
                               ),
                         ),
                         const SizedBox(height: 8),
-                        Text("ID: $id"),
+                        price.toString().length == 7
+                            ? Text(
+                                "Economize! Tenha acesso ilimitado aos recursos Premium o ano todo, com o melhor custo-benefício.",
+                              )
+                            : Text(
+                                "Acesso total a todos os recursos Premium, com flexibilidade de renovação mensal.",
+                              ),
                         const SizedBox(height: 8),
                         Align(
                           alignment: Alignment.bottomRight,
                           child: ElevatedButton(
-                            onPressed: _purchasePending ? null : () => _buy(id),
+                            onPressed: _purchasePending
+                                ? null
+                                : () => _buy(
+                                    price.toString().length == 7
+                                        ? anualId
+                                        : mensalId,
+                                  ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.deepPurple,
                               foregroundColor: Colors.white,
