@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:lista_compras/services/billing_service.dart';
 import 'package:lista_compras/data/repositories/log_repository.dart';
 import '../../data/repositories/premium_status_repository.dart';
+import 'package:lista_compras/main.dart';
 
 class PremiumPurchasePage extends StatefulWidget {
   const PremiumPurchasePage({super.key});
@@ -16,8 +17,11 @@ class PremiumPurchasePage extends StatefulWidget {
 
 class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   final PremiumStatusRepository _premiumStatusRepository =
-      PremiumStatusRepository();
+      premiumStatusRepository;
   final LogRepository _logRepository = LogRepository();
+
+  // Variável para ouvir as mudanças no stream de status premium
+  late StreamSubscription<bool> _premiumStatusSubscription;
 
   List<dynamic> _products = [];
   bool _loading = true;
@@ -29,6 +33,25 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     super.initState();
     _loadProducts();
     _restorePurchases();
+
+    // 2. INICIE O "OUVINTE" DO STATUS PREMIUM
+    // Este código ficará esperando uma mudança no status.
+    _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
+        .listen((isPremium) {
+          // Se o status mudar para TRUE e a tela ainda estiver visível...
+          if (isPremium && mounted) {
+            // ...significa que a compra foi concluída com sucesso!
+            _logRepository.addLog(
+              "Premium status mudou para true, mostrando sucesso.",
+            );
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Parabéns! Você agora é Premium!")),
+            );
+            // Fecha a tela de compras, pois o objetivo foi alcançado.
+            Navigator.of(context).pop();
+          }
+        });
   }
 
   Future<void> _loadProducts() async {
@@ -68,35 +91,23 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   Future<void> _buy(String productId) async {
     setState(() => _purchasePending = true);
     try {
-      final result = await BillingService.buyProduct(productId);
-      _logRepository.addLog("_buy($productId) RESULT: $result");
-
-      if (result == "purchase_started") {
-        // O resultado final vai vir no onPurchasesUpdated (nativo)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Compra iniciada...")));
-      }
-
-      // ⚠️ Se quiser simplificar (sem backend), assume premium aqui
-      await _premiumStatusRepository.updatePremiumStatus(true);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Parabéns! Você agora é Premium!")),
-      );
-      Navigator.pop(context);
+      await BillingService.buyProduct(productId);
+      _logRepository.addLog("_buy($productId) foi iniciado.");
     } catch (e) {
       _logRepository.addLog("_buy ERRO: $e");
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Erro ao comprar: $e")));
+      ).showSnackBar(SnackBar(content: Text("Erro ao iniciar compra: $e")));
     } finally {
-      setState(() => _purchasePending = false);
+      if (mounted) {
+        setState(() => _purchasePending = false);
+      }
     }
   }
 
   @override
   void dispose() {
+    _premiumStatusSubscription.cancel();
     super.dispose();
   }
 

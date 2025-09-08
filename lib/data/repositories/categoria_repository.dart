@@ -59,15 +59,7 @@ class CategoriaRepository {
   }
 
   Future<void> updateCategoria(CategoriaModel categoria) async {
-    final existingCategoria = _categoriasBox.get(categoria.id);
-    if (existingCategoria != null) {
-      existingCategoria.descricao = categoria.descricao;
-      existingCategoria.isActive = categoria.isActive;
-      existingCategoria.isRemoved = categoria.isRemoved;
-      await existingCategoria.save();
-    } else {
-      await _categoriasBox.put(categoria.id, categoria);
-    }
+    await _categoriasBox.put(categoria.id, categoria);
   }
 
   Future<void> deleteCategoria(String id) async {

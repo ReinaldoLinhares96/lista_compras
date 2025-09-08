@@ -4,7 +4,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/repositories/premium_status_repository.dart';
+import 'package:lista_compras/main.dart';
 import 'package:lista_compras/presentation/pages/premium_purchase_page.dart';
+import 'package:lista_compras/services/billing_service.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/produto_model.dart';
 import '../../data/repositories/produto_repository.dart';
@@ -39,7 +41,7 @@ class _ProductListPageState extends State<ProductListPage> {
   final ProdutoRepository _produtoRepository = ProdutoRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
   final PremiumStatusRepository _premiumStatusRepository =
-      PremiumStatusRepository();
+      premiumStatusRepository;
 
   Map<String, String> _categoriasDescricao = {};
   Map<String, CategoriaModel> _categoriasMap = {};
@@ -63,7 +65,7 @@ class _ProductListPageState extends State<ProductListPage> {
         _searchText = _searchController.text;
       });
     });
-
+    _checkForExistingPurchases();
     _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
         .listen((isPremium) {
           setState(() {
@@ -81,6 +83,18 @@ class _ProductListPageState extends State<ProductListPage> {
     _premiumStatusSubscription.cancel();
     AdManager.disposeAd();
     super.dispose();
+  }
+
+  Future<void> _checkForExistingPurchases() async {
+    try {
+      final purchases = await BillingService.restorePurchases();
+      if (purchases.isNotEmpty) {
+        print("Compra existente encontrada! Restaurando Premium.");
+        await _premiumStatusRepository.updatePremiumStatus(true);
+      }
+    } catch (e) {
+      print("Erro ao restaurar compras: $e");
+    }
   }
 
   void _onItemTapped(int index) {

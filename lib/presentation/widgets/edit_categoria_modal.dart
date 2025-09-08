@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
 import 'package:lista_compras/data/repositories/premium_status_repository.dart';
+import 'package:lista_compras/main.dart';
 import 'package:lista_compras/services/ad_manager.dart';
 
 class EditCategoriaModal extends StatefulWidget {
@@ -18,7 +19,7 @@ class EditCategoriaModal extends StatefulWidget {
 class _EditCategoriaModalState extends State<EditCategoriaModal> {
   final TextEditingController _descricaoController = TextEditingController();
   final PremiumStatusRepository _premiumStatusRepository =
-      PremiumStatusRepository();
+      premiumStatusRepository;
   final CategoriaRepository _repository = CategoriaRepository();
 
   final _isPremium = false;

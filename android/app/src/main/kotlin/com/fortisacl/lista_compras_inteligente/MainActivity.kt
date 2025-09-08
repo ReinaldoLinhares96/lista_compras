@@ -149,20 +149,26 @@ class MainActivity : FlutterActivity(), PurchasesUpdatedListener {
         }
     }
 
-    // 4. LÓGICA DE ATUALIZAÇÃO E CONFIRMAÇÃO DE COMPRAS
-    // Esta parte continua a mesma
-    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            for (purchase in purchases) {
-                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
-                    acknowledgePurchase(purchase)
+   override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
+                if (purchases != null) {
+                    for (purchase in purchases) {
+                        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                            // Compra nova e bem-sucedida, precisa ser confirmada.
+                            acknowledgePurchase(purchase)
+                        }
+                    }
                 }
             }
-            // Opcional: Enviar evento de sucesso de volta para o Dart
-            channel.invokeMethod("purchaseSuccess", null)
-        } else {
-            // Opcional: Enviar evento de erro/cancelamento de volta para o Dart
-            channel.invokeMethod("purchaseError", mapOf("responseCode" to billingResult.responseCode))
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                // O usuário cancelou o fluxo de compra.
+                channel.invokeMethod("purchaseCanceled", null)
+            }
+            else -> {
+                // Outro erro ocorreu.
+                channel.invokeMethod("purchaseError", mapOf("responseCode" to billingResult.responseCode))
+            }
         }
     }
 
@@ -170,10 +176,18 @@ class MainActivity : FlutterActivity(), PurchasesUpdatedListener {
         val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
             .build()
-        billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                // Compra confirmada com sucesso!
+        billingClient.acknowledgePurchase(acknowledgePurchaseParams) { ackResult ->
+            if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                // ✅ ESTE É O MOMENTO DA VERDADE!
+                // A compra foi paga, validada e confirmada.
+                // Agora avisamos o Dart que o usuário é oficialmente Premium.
+                val data = mapOf("productId" to purchase.products.firstOrNull())
+                channel.invokeMethod("purchaseSuccess", data)
+            } else {
+                // A confirmação falhou. Avisar o Dart sobre o erro.
+                channel.invokeMethod("purchaseError", mapOf("responseCode" to ackResult.responseCode))
             }
         }
     }
+
 }

@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/repositories/premium_status_repository.dart';
+import 'package:lista_compras/main.dart';
 import 'package:lista_compras/presentation/widgets/add_frequent_product_to_cart_modal.dart';
 import 'package:lista_compras/presentation/widgets/product_search_bar.dart';
 import 'package:provider/provider.dart';
@@ -39,7 +40,7 @@ class _ActiveShoppingPageState extends State<ActiveShoppingPage> {
   final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
   final PremiumStatusRepository _premiumStatusRepository =
-      PremiumStatusRepository();
+      premiumStatusRepository;
 
   CompraModel? _compraAtiva;
   OrcamentoModel? _orcamentoAtual;

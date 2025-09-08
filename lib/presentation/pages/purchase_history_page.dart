@@ -1,5 +1,7 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, unused_import, unused_field, prefer_final_fields, unnecessary_brace_in_string_interps
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/compra_model.dart';
 import 'package:lista_compras/data/models/item_compra_model.dart';
@@ -9,7 +11,9 @@ import 'package:lista_compras/data/repositories/compra_repository.dart';
 import 'package:lista_compras/data/repositories/item_compra_repository.dart';
 import 'package:lista_compras/data/repositories/compra_status_repository.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
+import 'package:lista_compras/data/repositories/premium_status_repository.dart';
 import 'package:lista_compras/data/repositories/produto_repository.dart';
+import 'package:lista_compras/main.dart';
 
 import 'package:lista_compras/presentation/widgets/purchase_history_filter_modal.dart';
 import 'package:intl/intl.dart';
@@ -29,7 +33,10 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   final ItemCompraRepository _itemCompraRepository = ItemCompraRepository();
   final CategoriaRepository _categoriaRepository = CategoriaRepository();
   final ProdutoRepository _produtoRepository = ProdutoRepository();
+  final PremiumStatusRepository _premiumStatusRepository =
+      premiumStatusRepository;
 
+  late StreamSubscription<bool> _premiumStatusSubscription;
   Map<String, String> _compraStatusDescricao = {};
   Map<String, String> _categoriasDescricao = {};
 
@@ -37,12 +44,18 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
 
   PurchaseFilterData _currentFilters = PurchaseFilterData();
 
-  final _isPremium = false;
+  bool _isPremium = false;
 
   @override
   void initState() {
     super.initState();
     _loadAuxiliaryData();
+    _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
+        .listen((isPremium) {
+          setState(() {
+            _isPremium = isPremium;
+          });
+        });
     AdManager.loadInterstitialAd();
   }
 

@@ -1,4 +1,10 @@
+// ignore_for_file: unused_field
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:lista_compras/data/repositories/premium_status_repository.dart';
+import 'package:lista_compras/main.dart';
 import 'package:lista_compras/services/ad_manager.dart';
 import '../../data/models/orcamento_model.dart';
 import '../../data/repositories/orcamento_repository.dart';
@@ -13,11 +19,22 @@ class OrcamentoPage extends StatefulWidget {
 class _OrcamentoPageState extends State<OrcamentoPage> {
   final OrcamentoRepository _orcamentoRepository = OrcamentoRepository();
   final TextEditingController _orcamentoController = TextEditingController();
-  final _isPremium = false;
+  final PremiumStatusRepository _premiumStatusRepository =
+      premiumStatusRepository;
+  late StreamSubscription<bool> _premiumStatusSubscription;
+  bool _isPremium = false;
 
   @override
   void initState() {
     super.initState();
+
+    _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
+        .listen((isPremium) {
+          setState(() {
+            _isPremium = isPremium;
+          });
+        });
+
     AdManager.loadInterstitialAd();
     _orcamentoRepository.getOrcamento().listen((orcamento) {
       if (_orcamentoController.text !=

@@ -25,6 +25,8 @@ import 'package:lista_compras/presentation/pages/product_list_page.dart'; // COR
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+late PremiumStatusRepository premiumStatusRepository;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
