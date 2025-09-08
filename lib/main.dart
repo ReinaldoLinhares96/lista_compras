@@ -56,6 +56,7 @@ void main() async {
   // Inicialização de repositórios que ainda gerenciam dados padrão.
   await CompraStatusRepository().initializeDefaultCompraStatus();
   await OrcamentoRepository().initializeDefaultOrcamento();
+  premiumStatusRepository = PremiumStatusRepository();
   await CategoriaRepository().initializeDefaultCategoria();
   await PremiumStatusRepository().initializeDefaultPremiumStatus();
   await LogRepository().initializeDefaultLog();
