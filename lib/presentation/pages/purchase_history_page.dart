@@ -36,15 +36,15 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   final PremiumStatusRepository _premiumStatusRepository =
       premiumStatusRepository;
 
-  late StreamSubscription<bool> _premiumStatusSubscription;
+  bool _isPremium = false;
+
   Map<String, String> _compraStatusDescricao = {};
   Map<String, String> _categoriasDescricao = {};
 
   List<ProdutoModel> _allProdutos = [];
 
   PurchaseFilterData _currentFilters = PurchaseFilterData();
-
-  bool _isPremium = false;
+  late StreamSubscription<bool> _premiumStatusSubscription;
 
   @override
   void initState() {
