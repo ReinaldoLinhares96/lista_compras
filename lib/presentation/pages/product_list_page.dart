@@ -244,20 +244,20 @@ class _ProductListPageState extends State<ProductListPage> {
                       ),
                       onTap: null,
                     ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.bug_report),
-                    title: const Text('Visualizar Logs'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LogScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  // const Divider(),
+                  // ListTile(
+                  //   leading: const Icon(Icons.bug_report),
+                  //   title: const Text('Visualizar Logs'),
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => const LogScreen(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                 ],
               ),
             );

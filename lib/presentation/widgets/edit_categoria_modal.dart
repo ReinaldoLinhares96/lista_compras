@@ -1,5 +1,7 @@
 // ignore_for_file: use_build_context_synchronously, unused_field
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lista_compras/data/models/categoria_model.dart';
 import 'package:lista_compras/data/repositories/categoria_repository.dart';
@@ -22,11 +24,21 @@ class _EditCategoriaModalState extends State<EditCategoriaModal> {
       premiumStatusRepository;
   final CategoriaRepository _repository = CategoriaRepository();
 
-  final _isPremium = false;
+  bool _isPremium = false;
+
+  late StreamSubscription<bool> _premiumStatusSubscription;
 
   @override
   void initState() {
     super.initState();
+
+    _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
+        .listen((isPremium) {
+          setState(() {
+            _isPremium = isPremium;
+          });
+        });
+
     AdManager.loadInterstitialAd();
     _descricaoController.text = widget.categoria.descricao;
   }

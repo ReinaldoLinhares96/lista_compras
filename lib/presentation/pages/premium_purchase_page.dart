@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, unused_element, unnecessary_brace_in_string_interps, unnecessary_string_interpolations
+// ignore_for_file: use_build_context_synchronously, unused_element, unnecessary_brace_in_string_interps, unnecessary_string_interpolations, unused_field
 
 import 'dart:async';
 
@@ -41,9 +41,9 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
           // Se o status mudar para TRUE e a tela ainda estiver visível...
           if (isPremium && mounted) {
             // ...significa que a compra foi concluída com sucesso!
-            _logRepository.addLog(
-              "Premium status mudou para true, mostrando sucesso.",
-            );
+            // _logRepository.addLog(
+            //   "Premium status mudou para true, mostrando sucesso.",
+            // );
 
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Parabéns! Você agora é Premium!")),
@@ -65,26 +65,26 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
         _loading = false;
       });
 
-      _logRepository.addLog("_loadProducts: $products");
+      // _logRepository.addLog("_loadProducts: $products");
     } catch (e) {
       setState(() {
         _error = "Erro ao carregar produtos: $e";
         _loading = false;
       });
-      _logRepository.addLog("_loadProducts ERRO: $e");
+      // _logRepository.addLog("_loadProducts ERRO: $e");
     }
   }
 
   Future<void> _restorePurchases() async {
     try {
       final restored = await BillingService.restorePurchases();
-      _logRepository.addLog("_restorePurchases: $restored");
+      // _logRepository.addLog("_restorePurchases: $restored");
 
       if (restored.isNotEmpty) {
         await _premiumStatusRepository.updatePremiumStatus(true);
       }
     } catch (e) {
-      _logRepository.addLog("_restorePurchases ERRO: $e");
+      //_logRepository.addLog("_restorePurchases ERRO: $e");
     }
   }
 
@@ -92,9 +92,9 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
     setState(() => _purchasePending = true);
     try {
       await BillingService.buyProduct(productId);
-      _logRepository.addLog("_buy($productId) foi iniciado.");
+      //_logRepository.addLog("_buy($productId) foi iniciado.");
     } catch (e) {
-      _logRepository.addLog("_buy ERRO: $e");
+      // _logRepository.addLog("_buy ERRO: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Erro ao iniciar compra: $e")));

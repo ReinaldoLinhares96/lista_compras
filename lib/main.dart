@@ -1,4 +1,4 @@
-// ignore_for_file: await_only_futures
+// ignore_for_file: await_only_futures, unused_import
 
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -57,7 +57,7 @@ void main() async {
   await CompraStatusRepository().initializeDefaultCompraStatus();
   await OrcamentoRepository().initializeDefaultOrcamento();
   premiumStatusRepository = PremiumStatusRepository();
-  await CategoriaRepository().initializeDefaultCategoria();
+  //await CategoriaRepository().initializeDefaultCategoria();
   await PremiumStatusRepository().initializeDefaultPremiumStatus();
   await LogRepository().initializeDefaultLog();
 
