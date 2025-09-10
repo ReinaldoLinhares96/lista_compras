@@ -211,7 +211,7 @@ class _ProductListPageState extends State<ProductListPage> {
                     title: const Text('Histórico de Compras'),
                     onTap: () {
                       Navigator.pop(context);
-                      AdManager.maybeShowInterstitialAd(_isPremium);
+                      AdManager.showInterstitialAd(_isPremium);
                       Navigator.push(
                         context,
                         MaterialPageRoute(

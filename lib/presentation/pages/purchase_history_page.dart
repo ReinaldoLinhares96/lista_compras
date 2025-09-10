@@ -76,7 +76,7 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
         _allProdutos = produtos;
       });
     });
-    AdManager.showInterstitialAd(_isPremium);
+    //AdManager.showInterstitialAd(_isPremium);
   }
 
   String _formatDate(DateTime date) {
