@@ -49,14 +49,15 @@ class _PurchaseHistoryPageState extends State<PurchaseHistoryPage> {
   @override
   void initState() {
     super.initState();
-    _loadAuxiliaryData();
     _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
         .listen((isPremium) {
           setState(() {
             _isPremium = isPremium;
           });
         });
+
     AdManager.loadInterstitialAd();
+    _loadAuxiliaryData();
   }
 
   Future<void> _loadAuxiliaryData() async {

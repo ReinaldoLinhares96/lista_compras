@@ -31,16 +31,10 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
   @override
   void initState() {
     super.initState();
-    _loadProducts();
-    _restorePurchases();
 
-    // 2. INICIE O "OUVINTE" DO STATUS PREMIUM
-    // Este código ficará esperando uma mudança no status.
     _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
         .listen((isPremium) {
-          // Se o status mudar para TRUE e a tela ainda estiver visível...
           if (isPremium && mounted) {
-            // ...significa que a compra foi concluída com sucesso!
             // _logRepository.addLog(
             //   "Premium status mudou para true, mostrando sucesso.",
             // );
@@ -48,10 +42,12 @@ class _PremiumPurchasePageState extends State<PremiumPurchasePage> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Parabéns! Você agora é Premium!")),
             );
-            // Fecha a tela de compras, pois o objetivo foi alcançado.
             Navigator.of(context).pop();
           }
         });
+
+    _loadProducts();
+    _restorePurchases();
   }
 
   Future<void> _loadProducts() async {

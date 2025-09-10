@@ -59,21 +59,22 @@ class _ProductListPageState extends State<ProductListPage> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
-    _loadAuxiliaryData();
-    _searchController.addListener(() {
-      setState(() {
-        _searchText = _searchController.text;
-      });
-    });
-    _checkForExistingPurchases();
     _premiumStatusSubscription = _premiumStatusRepository.isPremiumStream
         .listen((isPremium) {
           setState(() {
             _isPremium = isPremium;
           });
         });
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text;
+      });
+    });
 
     AdManager.loadInterstitialAd();
+
+    _loadAuxiliaryData();
+    _checkForExistingPurchases();
   }
 
   @override
